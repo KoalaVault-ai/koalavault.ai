@@ -1,0 +1,64 @@
+# Security Policy: --trust-remote-code Disabled
+
+## Overview
+
+The `--trust-remote-code` parameter in vLLM allows execution of custom code when loading models from Hugging Face Hub. This feature enables support for cutting-edge models with custom architectures and implementations, providing flexibility for the latest AI research and development. However, Koalavault has disabled this feature due to significant security concerns.
+
+## How --trust-remote-code Works
+
+When enabled, `--trust-remote-code` allows vLLM to:
+
+- Execute custom code bundled with models from Hugging Face Hub (if the specified code is already included in the model directory, it will directly use the code in the model directory)
+- Load model-specific tokenizers, processors, or configuration classes
+- Use custom implementations provided by model authors
+
+## Security Vulnerability
+
+The primary security risk involves malicious users who can:
+
+1. **Modify model configurations**: Even if the original model doesn't require `trust_remote_code`, malicious users can modify the `config.json` file
+2. **Enable remote code execution**: By setting `trust_remote_code=True` in the modified config
+3. **Execute arbitrary code**: vLLM will automatically load and execute custom code
+4. **Extract model weights**: Malicious code can potentially export model weights or access sensitive data
+
+This attack vector allows unauthorized access to model assets and system resources.
+
+## Current Status
+
+**Koalavault has disabled `--trust-remote-code` functionality.**
+
+As a result, only models that do not require `trust_remote_code` can be deployed on our platform.
+
+## Future Plans
+
+We are planning to implement enhanced security measures:
+
+- **Config validation**: Verify the integrity of `config.json` files
+- **Custom code verification**: Implement validation mechanisms for custom code
+- **Secure execution environment**: Create sandboxed environments for safe code execution
+
+## Community Feedback
+
+If you require `--trust-remote-code` functionality, please:
+
+1. Create an issue on our [GitHub repository](https://github.com/koalavault/koalavault.ai/issues)
+2. Describe your specific use case and requirements
+3. We will adjust feature priorities based on community feedback
+
+## Alternative Solutions
+
+For models requiring custom code:
+
+1. **Local deployment**: Deploy vLLM in your controlled environment
+2. **Code review**: Thoroughly audit any custom code before execution
+3. **Sandbox testing**: Test models in isolated environments
+
+## Related Resources
+
+- [vLLM Documentation](https://docs.vllm.ai/)
+- [Hugging Face Security Guidelines](https://huggingface.co/docs/hub/security)
+- [Koalavault Security Policy](https://koalavault.ai/security)
+
+---
+
+*Last updated: December 2024*
