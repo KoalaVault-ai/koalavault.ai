@@ -1,0 +1,51 @@
+{
+  "docs": [
+    {
+      "id": "quick-start",
+      "title": "Quick Start",
+      "path": "quick-start.md",
+      "filename": "quick-start",
+      "category": "getting-started",
+      "description": "Complete guide for account registration and cryptocurrency wallet configuration"
+    },
+    {
+      "id": "trust-remote-code",
+      "title": "Trust Remote Code",
+      "path": "trust-remote-code.md",
+      "filename": "trust-remote-code",
+      "category": "security",
+      "description": "Security policy regarding --trust-remote-code functionality and model deployment restrictions"
+    },
+    {
+      "id": "koava-tool",
+      "title": "Koava Tool",
+      "path": "koava-tool.md",
+      "filename": "koava-tool",
+      "category": "tools",
+      "description": "Complete guide for using the koava command-line tool for model management"
+    }
+  ],
+  "categories": [
+    {
+      "id": "getting-started",
+      "title": "Getting Started",
+      "description": "Account setup and initial configuration",
+      "icon": "zap",
+      "color": "bg-blue-500"
+    },
+    {
+      "id": "tools",
+      "title": "Tools",
+      "description": "Command-line tools and utilities",
+      "icon": "code",
+      "color": "bg-yellow-500"
+    },
+    {
+      "id": "security",
+      "title": "Security",
+      "description": "Security policies and trust guidelines",
+      "icon": "shield",
+      "color": "bg-red-500"
+    }
+  ]
+}

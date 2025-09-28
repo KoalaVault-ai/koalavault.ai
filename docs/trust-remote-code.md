@@ -1,4 +1,4 @@
-# Security Policy: --trust-remote-code Disabled
+# Disabling --trust-remote-code in vLLM
 
 ## Overview
 
