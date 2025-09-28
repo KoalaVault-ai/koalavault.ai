@@ -32,10 +32,14 @@ if [ ! -d "$TARGET_DIR" ]; then
     mkdir -p "$TARGET_DIR"
 fi
 
-# Check if frontend docs service exists
+# Check if frontend docs service exists (skip in CI environment)
 if [ ! -f "$FRONTEND_DOCS_SERVICE" ]; then
-    echo -e "${RED}❌ Error: Frontend docs service '$FRONTEND_DOCS_SERVICE' not found${NC}"
-    exit 1
+    if [ "$CI" = "true" ] || [ "$GITHUB_ACTIONS" = "true" ]; then
+        echo -e "${YELLOW}⚠️  Skipping frontend docs service check in CI environment${NC}"
+    else
+        echo -e "${RED}❌ Error: Frontend docs service '$FRONTEND_DOCS_SERVICE' not found${NC}"
+        exit 1
+    fi
 fi
 
 echo -e "${BLUE}📋 Source: $SOURCE_DIR${NC}"
@@ -116,10 +120,12 @@ except Exception as e:
     sys.exit(1)
 "
 
-# Verify git ignore is set up
+# Verify git ignore is set up (skip in CI environment)
 echo -e "${YELLOW}🔧 Verifying git ignore setup...${NC}"
 
-if grep -q "public/docs/" "../server/frontend/.gitignore"; then
+if [ "$CI" = "true" ] || [ "$GITHUB_ACTIONS" = "true" ]; then
+    echo -e "${YELLOW}⚠️  Skipping git ignore check in CI environment${NC}"
+elif [ -f "../server/frontend/.gitignore" ] && grep -q "public/docs/" "../server/frontend/.gitignore"; then
     echo -e "${GREEN}✅ Git ignore is properly configured${NC}"
 else
     echo -e "${YELLOW}⚠️  Please add 'public/docs/' to frontend/.gitignore${NC}"
