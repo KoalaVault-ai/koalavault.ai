@@ -1,6 +1,9 @@
 # vLLM-cryptotensors — Run Guide
 
-The cryptotensors runtime is built on top of the official **vLLM** container to provide inference services for encrypted models. With our customization, encrypted models can be securely decrypted inside the container and served in the same way as a standard vLLM deployment. To preserve the security of decrypted models, we enforce additional restrictions on how the container must be started. The exact startup requirements are outlined below, including which flags must remain immutable and which can be configured by the user.
+The cryptotensors runtime is built on top of the official **vLLM** container to provide inference services for encrypted models.  
+With our customization, encrypted models can be securely decrypted inside the container and served in the same way as a standard vLLM deployment.  
+To preserve the security of decrypted models, we enforce additional restrictions on how the container must be started.  
+The exact startup requirements are outlined below, including which flags must remain immutable and which can be configured by the user.
 
 > **Note:** Items under **Immutable flags** are fixed and must not be modified.  
 > Any changes may cause the program to terminate immediately.  
@@ -16,8 +19,6 @@ The cryptotensors runtime is built on top of the official **vLLM** container to 
 docker run --gpus all --rm -it \
   --network host \
   --read-only \
-  --env XDG_CACHE_HOME=/root/.cache \
-  --env CUDA_CACHE_PATH=/root/.cache/nv/ComputeCache \
   --cap-drop ALL --security-opt no-new-privileges \
   --tmpfs /dev/shm:exec,nosuid,nodev \
   --tmpfs /tmp:exec,nosuid,nodev \
@@ -40,8 +41,6 @@ docker run --gpus all --rm -it \
 > To ensure that cryptotensors decryption happens in a secure environment, we enforce strict controls on how the container is launched.  
 > These flags must remain unchanged in the startup command. Otherwise, the container will terminate immediately.
 - `--read-only`
-- `--env XDG_CACHE_HOME=/root/.cache`
-- `--env CUDA_CACHE_PATH=/root/.cache/nv/ComputeCache`
 - `--cap-drop ALL --security-opt no-new-privileges`
 - `--tmpfs /dev/shm:exec,nosuid,nodev`
 - `--tmpfs /tmp:exec,nosuid,nodev`
