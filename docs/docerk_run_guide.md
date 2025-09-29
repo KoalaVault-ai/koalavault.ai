@@ -24,13 +24,12 @@ docker run --gpus all --rm -it \
   --tmpfs /tmp:exec,nosuid,nodev \
   --tmpfs /root/.triton:exec,nosuid,nodev \
   --tmpfs /root/.cache:exec,nosuid,nodev \
-  --env BASE_URL <CRYPTO_BASE_URL> \
+  --env BASE_URL <KOALAVAULT_BASE_URL> \
   -v <HOST_MODEL_DIR>:/model \
   --name <CONTAINER_NAME> \
   <IMAGE_NAME>:<TAG> \
-  --crypto_api_key <CRYPTO_API_KEY> \
-  --crypto_model_owner <MODEL_OWNER> \
-  --crypto_model_name <MODEL_NAME> \
+  --koalavault-api-key <KOALAVAULT_API_KEY> \
+  --koalavault-model <MODEL_OWNER/MODEL_NAME> \
   --model /model \
   --tokenizer /model \
   --port 8000 \
@@ -50,16 +49,15 @@ docker run --gpus all --rm -it \
 
 ### Configurable flags (user may change)
 These flags can be customized by the user.  
-Flags starting with `crypto_***` are required by the cryptotensors client and must be provided by your administrator or service provider.  
+Flags starting with `koalavault-***` are required by the cryptotensors client and must be provided by your administrator or service provider.  
 All other configurable options should follow the standard vLLM container conventions. 
-- `--env BASE_URL <CRYPTO_BASE_URL>` : Cryptotensors server endpoint.
+- `--env BASE_URL <KOALAVAULT_BASE_URL>` : Cryptotensors server endpoint (optional).
 - `-v <HOST_MODEL_DIR>:/model` : Local path to the encrypted model, must be mounted as `/model`.  
 - `--name <CONTAINER_NAME>` : Container name (user-defined).  
 - `-p <HOST_PORT>:<CONTAINER_PORT>` : Docker port mapping, usually `-p 8000:8000` to expose the service.  
 - `<IMAGE_NAME>:<TAG>` : vLLM-cryptotensors image and version.   
-- `--crypto_api_key <CRYPTO_API_KEY>` : API key for authentication.  
-- `--crypto_model_owner <MODEL_OWNER>` : Owner name registered on the server.  
-- `--crypto_model_name <MODEL_NAME>` : Model name registered on the server.  
+- `--koalavault-api-key <KOALAVAULT_API_KEY>` : API key for authentication (optional).  
+- `--koalavault-model <MODEL_OWNER/MODEL_NAME>` : Model identifier in format "owner/model_name".  
 - `--model /model` : Fixed, do not change.  
 - `--tokenizer /model` : Fixed, do not change.  
 - `--port <PORT>` : Port exposed by the container (e.g. `8000`).  
