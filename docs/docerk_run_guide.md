@@ -52,7 +52,7 @@ docker run --gpus all --rm -it \
 These flags can be customized by the user.  
 Flags starting with `crypto_***` are required by the cryptotensors client and must be provided by your administrator or service provider.  
 All other configurable options should follow the standard vLLM container conventions. 
-- `BASE_URL <CRYPTO_BASE_URL>` : Cryptotensors server endpoint.
+- `--env BASE_URL <CRYPTO_BASE_URL>` : Cryptotensors server endpoint.
 - `-v <HOST_MODEL_DIR>:/model` : Local path to the encrypted model, must be mounted as `/model`.  
 - `--name <CONTAINER_NAME>` : Container name (user-defined).  
 - `-p <HOST_PORT>:<CONTAINER_PORT>` : Docker port mapping, usually `-p 8000:8000` to expose the service.  
