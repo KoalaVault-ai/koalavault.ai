@@ -1,9 +1,6 @@
 # vLLM-cryptotensors — Run Guide
 
-The cryptotensors runtime is built on top of the official **vLLM** container to provide inference services for encrypted models.  
-With our customization, encrypted models can be securely decrypted inside the container and served in the same way as a standard vLLM deployment.  
-To preserve the security of decrypted models, we enforce additional restrictions on how the container must be started.  
-The exact startup requirements are outlined below, including which flags must remain immutable and which can be configured by the user.
+The cryptotensors runtime is built on top of the official **vLLM** container to provide inference services for encrypted models. With our customization, encrypted models can be securely decrypted inside the container and served in the same way as a standard vLLM deployment. To preserve the security of decrypted models, we enforce additional restrictions on how the container must be started. The exact startup requirements are outlined below, including which flags must remain immutable and which can be configured by the user.
 
 > **Note:** Items under **Immutable flags** are fixed and must not be modified.  
 > Any changes may cause the program to terminate immediately.  
