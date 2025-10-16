@@ -35,7 +35,7 @@ You can now start to [deploy models as a buyer](#deploy-models-as-a-buyer) or [p
 1. Install the koava command-line tool with HuggingFace CLI support:
 
 ```bash
-pip install koava[huggingface]
+pip install -U "koava[huggingface]"
 ```
 
 ### Step 2: Authentication Setup
@@ -95,7 +95,7 @@ koava push ./qwen3-0.6b
 
 ## Deploy Models as a Buyer
 
-> Model owner can always access to the model whether it is published or not. To deploy the model as model owner, directly go to [step 5](#step-5-pull-the-koalavault-enhanced-vllm-docker-image).
+> Model owner can always access to the model whether it is published or not. To deploy the model as model owner, directly go to [step 4](#step-4-pull-the-koalavault-enhanced-vllm-docker-image).
 
 ### Step 1: Create an Order
 
@@ -121,58 +121,99 @@ koava push ./qwen3-0.6b
 1. After you get the transaction id from Binance, you can copy the transaction id and paste it to the **Blockchain Transaction ID** field in the order detail page
 2. Click **Confirm** in the order detail page. The order will be confirmed by KoalaVault and the model will be available for you to use.
 
-### Step 4: Download the Model
-
-As Koalavault only hosts the part of the model, you need to first download the full model from HuggingFace. 
-
-1. Install `koava` with HuggingFace CLI support if you haven't done so:
-```bash
-pip install koava[huggingface]
-```
-
-2. Download the model from HuggingFace (you can see the download command in the model detail page under **Deploy** tab):
-```bash
-hf download <MODEL_OWNER>/<MODEL_NAME> --local-dir ./<MODEL_NAME>
-```
-
-### Step 5: Pull the KoalaVault enhanced vLLM docker image
+### Step 4: Pull the KoalaVault enhanced vLLM docker image
 
 ```bash
 docker pull koalavault/vllm-openai
 ```
 
-### Step 6: Deploy the Model
+### Step 5: Deploy the Model
 
-Deploy the vLLM container with the downloaded model and replace the API key and model name with your KoalaVault username and model name:
+#### 🚀 Quick Start (Recommended for Beginners)
+
+The simplest way to get started - just run one command and the model will be automatically downloaded:
 
 ```bash
 docker run --gpus all --rm -it \
-  -v ./<MODEL_NAME>:/model \
+  -v ~/.cache/huggingface:/root/.cache/huggingface \
   -p 8000:8000 \
   --ipc=host \
   --read-only \
-  --cap-drop ALL --security-opt no-new-privileges \
-  --tmpfs /dev/shm:exec,nosuid,nodev \
+  --cap-drop ALL \
   --tmpfs /tmp:exec,nosuid,nodev \
-  --tmpfs /root/.triton:exec,nosuid,nodev \
-  --tmpfs /root/.cache:exec,nosuid,nodev \
   koalavault/vllm-openai \
   --koalavault-api-key <KOALAVAULT_API_KEY> \
-  --koalavault-model <MODEL_OWNER/MODEL_NAME> \
-  --model /model \
+  --koalavault-model <PUBLISHER_USERNAME>/<MODEL_NAME> \
+  --model <PUBLISHER_USERNAME>/<MODEL_NAME>
 ```
 
-> **Note:** To ensure that model decryption happens in a secure environment, we enforce strict controls on how the container is launched.  
-> These flags must remain unchanged in the startup command. Otherwise, the container will terminate immediately.
-> 
-> - `--read-only`
-> - `--cap-drop ALL --security-opt no-new-privileges`
-> - `--tmpfs /dev/shm:exec,nosuid,nodev`
-> - `--tmpfs /tmp:exec,nosuid,nodev`
-> - `--tmpfs /root/.triton:exec,nosuid,nodev`
-> - `--tmpfs /root/.cache:exec,nosuid,nodev`
+> **Note:** `<PUBLISHER_USERNAME>` is the KoalaVault username of the model publisher (the user who uploaded the model to KoalaVault), not necessarily the HuggingFace organization name.
 
-> **Note:** The model must be mounted to `/model` inside the container, as this is the only writable disk space available.
+**Why this method?**
+- ✅ **Simplest** - One command, no manual steps
+- ✅ **Automatic** - Downloads model on first run
+- ✅ **Smart caching** - Reuses downloaded models, resume interrupted downloads
+- ✅ **Standard workflow** - Same as using HuggingFace directly
+
+**Important Notes:**
+- First run will download the model (takes time depending on model size and network speed)
+- Subsequent runs are fast as the model is cached
+- Cache directory should not be shared between different users for security
+
+---
+
+#### 🏭 Alternative: Pre-download Model (For Production Environments)
+
+If you prefer full control or need to deploy in production, you can manually download the model first:
+
+**Step 1: Download the Model**
+
+```bash
+# Install HuggingFace CLI if you haven't
+pip install -U "koava[huggingface]"
+
+# Download the model
+hf download <PUBLISHER_USERNAME>/<MODEL_NAME> --local-dir ./<MODEL_NAME>
+```
+
+**Step 2: Run Container**
+
+```bash
+docker run --gpus all --rm -it \
+  -v ./<MODEL_NAME>:/models \
+  -p 8000:8000 \
+  --ipc=host \
+  --read-only \
+  --cap-drop ALL \
+  --tmpfs /tmp:exec,nosuid,nodev \
+  koalavault/vllm-openai \
+  --koalavault-api-key <KOALAVAULT_API_KEY> \
+  --koalavault-model <PUBLISHER_USERNAME>/<MODEL_NAME> \
+  --model /models/<MODEL_NAME>
+```
+
+**When to use this method:**
+- ✅ Production deployments requiring full control
+- ✅ Offline or air-gapped environments
+- ✅ Need to verify model files before deployment
+
+---
+
+### Security Notes
+
+> **Important:** To ensure that model decryption happens in a secure environment, we enforce strict controls on how the container is launched.  
+> These flags must remain unchanged in the startup command. Otherwise, the container will terminate immediately.
+
+**Required Security Flags:**
+- `--read-only` - Container filesystem is read-only
+- `--cap-drop ALL` - Drops all Linux capabilities
+- `--tmpfs /tmp:exec,nosuid,nodev` - Temporary directory as tmpfs (runtime caches via symlinks)
+
+**Why these restrictions?**
+- **Read-only filesystem**: Prevents tampering with system files and persistence of decrypted data
+- **Dropped capabilities**: Removes all dangerous permissions (mount, raw sockets, kernel modules, ptrace, etc.). With CapBnd=0x0, processes cannot gain any privileges
+- **Host IPC**: Provides sufficient shared memory for large models while maintaining security
+- **tmpfs for /tmp**: All runtime caches (Triton, vLLM, PyTorch) are stored in memory via symlinks, ensuring ephemeral storage that disappears when the container stops. The `exec` permission is required for Triton JIT compilation, while `nosuid` and `nodev` prevent privilege escalation attacks
 
 
 
