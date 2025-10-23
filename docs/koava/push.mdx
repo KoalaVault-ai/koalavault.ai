@@ -1,0 +1,81 @@
+---
+title: "koava push"
+description: "Complete workflow: create model, encrypt, and upload to KoalaVault & Hugging Face"
+---
+
+# Usage
+
+```bash
+koava push <MODEL_PATH> [OPTIONS]
+```
+
+For help:
+```bash
+koava push -h
+```
+
+# Description
+
+The `push` command is the recommended way to publish models to KoalaVault. It combines four steps into one:
+
+1. **Create**: Create the model on KoalaVault
+2. **Encrypt**: Convert safetensors files to encrypted format
+3. **Upload**: Upload metadata to KoalaVault
+4. **Publish**: Create model on Hugging Face and upload complete encrypted files, then update KoalaVault with Hugging Face URL and README
+
+This is the easiest way for most users to publish their models.
+
+<Note>
+Currently, KoalaVault only supports `safetensors` format files. Convert your model to safetensors format first if needed.
+</Note>
+
+# Examples
+
+```bash
+# Basic push
+koava push ./my-model
+
+# Push with custom name and description
+koava push ./my-model --name "my-encrypted-model" --description "Fine-tuned GPT-2 model for text generation"
+
+# Force push (overwrite existing)
+koava push ./my-model --force
+```
+
+# Advanced
+
+## Arguments
+
+### MODEL_PATH
+Path to the directory containing your model files (required).
+
+## Options
+
+### --name, -n
+Model name to be created on both KoalaVault and Hugging Face (defaults to directory name).
+
+```bash
+koava push ./my-model --name "my-model"
+```
+
+### --description, -d
+Model description for marketplace listing on KoalaVault.
+
+```bash
+koava push ./my-model --description "My awesome model"
+```
+
+### --force, -f
+Force encryption (overwrite backup) and upload (overwrite remote).
+
+```bash
+koava push ./my-model --force
+```
+
+
+# Related Commands
+
+- [koava create](/koava/create) - Create model only (manual workflow)
+- [koava encrypt](/koava/encrypt) - Encrypt only (manual workflow)
+- [koava upload](/koava/upload) - Upload only (manual workflow)
+- [koava restore](/koava/restore) - Restore from backup if needed

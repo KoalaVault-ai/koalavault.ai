@@ -1,0 +1,108 @@
+---
+title: "koava config"
+description: "Configure timeout, verbose logging, and Hugging Face CLI settings"
+---
+
+# Usage
+
+```bash
+koava config <SUBCOMMAND>
+```
+
+For help:
+```bash
+koava config -h
+```
+
+# Description
+
+The `config` command manages koava's configuration settings.
+
+# Examples
+
+## Basic Configuration
+
+```bash
+# Check current configuration
+koava config show
+
+# Set timeout to 2 minutes
+koava config set-timeout 120
+
+# Enable verbose logging
+koava config set-verbose true
+```
+
+## Hugging Face CLI Configuration
+
+```bash
+# Auto-detect Hugging Face CLI
+koava config set-huggingface-cli auto
+
+# Specify custom Hugging Face CLI path
+koava config set-huggingface-cli /usr/local/bin/huggingface-cli
+```
+
+## Reset Configuration
+
+```bash
+# Reset to defaults
+koava config reset
+```
+
+# Advanced
+
+## Subcommands
+
+### show
+
+Display current configuration:
+
+```bash
+koava config show
+```
+
+### set-timeout
+
+Set request timeout in seconds:
+
+```bash
+koava config set-timeout <SECONDS>
+```
+
+### set-verbose
+
+Enable or disable verbose logging:
+
+```bash
+koava config set-verbose <true|false>
+```
+
+### set-huggingface-cli
+
+Set Hugging Face CLI path (required for `push` command):
+
+```bash
+koava config set-huggingface-cli <PATH|auto>
+```
+
+Options:
+- `auto` - Auto-detect from PATH (default)
+- `/path/to/hf` - Custom path to Hugging Face CLI
+
+<Note>
+The `push` command requires Hugging Face CLI to create public models and upload encrypted models. You must be logged in with `hf auth login` before using `push`.
+</Note>
+
+### reset
+
+Reset all configuration to defaults:
+
+```bash
+koava config reset
+```
+
+# Related Commands
+
+- [koava status](/koava/status) - Check configuration and connection status
+- [koava login](/koava/login) - Authenticate with API key

@@ -1,0 +1,131 @@
+---
+title: "koava status"
+description: "Check authentication status and server connection"
+---
+
+# Usage
+
+```bash
+koava status
+```
+
+For help:
+```bash
+koava status -h
+```
+
+# Description
+
+Shows your KoalaVault authentication status, user info, and server connection status.
+
+It also shows the Hugging Face CLI status, which is important because the `push` command requires Hugging Face CLI to be logged in, as it automatically creates public models on Hugging Face and uploads encrypted models there.
+
+<Note>
+The `status` command automatically detects Hugging Face CLI status by calling `hf auth whoami`.
+</Note>
+
+# Examples
+
+## Check Status
+
+```bash
+koava status
+```
+
+Normal output (everything working):
+```
+Status
+------
+Version: 0.0.11
+Authentication: Authenticated
+Username: koalavault
+Email: koalavault@koalavault.ai
+Server: Connected
+Hugging Face CLI: Logged in as KoalaVault
+```
+
+## Authentication Issues
+
+**Not authenticated:**
+```bash
+koava status
+# Authentication: Not authenticated
+```
+
+**Solution:** Run `koava login`
+
+## Server Connection Issues
+
+<Expandable title="Server Connection Issues">
+
+**Connection failed:**
+```bash
+koava status
+# Server: Connection failed (Network error: error sending request for url (https://api.koalavault.ai/api/health))
+```
+
+**DNS resolution failed:**
+```bash
+koava status
+# Server: Connection failed (DNS resolution failed - check endpoint URL)
+```
+
+**Connection refused:**
+```bash
+koava status
+# Server: Connection failed (Connection refused - server not running?)
+```
+
+**Connection timeout:**
+```bash
+koava status
+# Server: Connection failed (Connection timeout - server unreachable)
+```
+
+**Certificate issues:**
+```bash
+koava status
+# Server: Connection failed (Certificate verification failed)
+```
+
+</Expandable>
+
+## Hugging Face CLI Issues
+
+<Expandable title="Hugging Face CLI Issues">
+
+**CLI not found:**
+```bash
+koava status
+# Hugging Face CLI: Not found
+```
+
+**CLI found but not logged in:**
+```bash
+koava status
+# Hugging Face CLI: Found (not logged in)
+```
+
+**CLI logged in (normal):**
+```bash
+koava status
+# Hugging Face CLI: Logged in as username
+```
+
+</Expandable>
+
+## User Information Issues
+
+**No username/email (when not authenticated):**
+```bash
+koava status
+# Username: -
+# Email: -
+```
+
+# Related Commands
+
+- [koava login](/koava/login) - Authenticate with API key
+- [koava logout](/koava/logout) - Clear stored credentials
+- [koava config](/koava/config) - Configure server endpoint and settings
+- [koava push](/koava/push) - Complete workflow with Hugging Face integration

@@ -1,0 +1,401 @@
+---
+title: "Deploy Models as a Buyer"
+description: "This guide shows you how to purchase and deploy LLM models from the KoalaVault marketplace."
+---
+
+<Note>
+**Are you the model seller?** 
+
+Model sellers automatically have access to their own models (public or private) without purchase. You can skip directly to [Deploy Model](#deploy-model) section.
+</Note>
+
+# Buy Model
+
+> Before purchasing, make sure you have completed the [Account Setup](/getting-started/quick-start#account-setup).
+
+<Tip>
+**Want to try it out first?** Use our free demo model [koalavault/qwen3-0.6b](https://www.koalavault.ai/koalavault/qwen3-0.6b) (0 USDT). Complete steps 1-2, skip payment steps 3-4, then jump to [Download Model](#download-model).
+</Tip>
+
+<Steps>
+  <Step title="Browse & Select Model">
+    1. [Browse the marketplace](https://www.koalavault.ai/models) to discover available models
+    2. Find a model that fits your needs (e.g., [koalavault/qwen3-0.6b](https://www.koalavault.ai/koalavault/qwen3-0.6b) for testing)
+    3. Click on the model to view details, pricing, and specifications
+  </Step>
+
+  <Step title="Create Order">
+    1. On the model page, click **Purchase** in the top right corner
+    2. Select your preferred pricing plan
+    3. Review the order details and total amount
+    4. Click **Create Order**
+    
+    <Tip>
+    **First-time buyer?** We recommend using **anonymous payment** for your first purchase. This allows you to pay directly from exchanges like Binance without setting up a wallet first.
+    </Tip>
+  </Step>
+
+  <Step title="Make the Payment">
+    After creating your order, you'll see the payment address and instructions on the order detail page. Send USDT payment on BSC network using a supported exchange or wallet.
+    
+    <Note>
+    Payment Requirements:
+    - Must use **USDT** (Tether) cryptocurrency
+    - Must be on **BSC (BNB Smart Chain)** network
+    - Token standard: **BEP-20**
+    </Note>
+
+    <Card title="New to Crypto Payments?" icon="credit-card" href="/crypto/payment-guide">
+      Don't worry! Follow our beginner-friendly payment guide with step-by-step instructions for Binance, crypto wallets, and more.
+    </Card>
+  </Step>
+
+  <Step title="Submit Transaction ID">
+    After completing your payment, you'll receive a **Transaction ID (txid)** from your exchange or wallet. Submit this to KoalaVault for verification:
+
+    1. **Find your order**: Go to your order detail page or [Subscriptions](https://www.koalavault.ai/subscriptions) to view pending orders
+    2. **Submit txid**: Paste your <Tooltip tip="Transaction IDs are 66-character strings starting with 0x. You can track your transaction on BscScan">Transaction ID</Tooltip> (starts with `0x...`) and click **Confirm Payment**
+
+    Once verified on the blockchain (usually 1-5 minutes), you'll see an **active subscription** for the model in your [Subscriptions](https://www.koalavault.ai/subscriptions) page. This means the model is now available for download and deployment.
+  </Step>
+</Steps>
+
+# Download Model
+
+<Steps>
+  <Step title="Install Required Tools">
+    Install Koava with HuggingFace support, which includes the `hf` command for downloading models:
+
+    ```bash
+    pip install -U "koava[huggingface]"
+    ```
+  </Step>
+
+  <Step title="Download Model">
+    1. Go to your purchased model's detail page on the KoalaVault platform
+    2. Click the **Deploy** tab and copy the download command
+    3. Run the command to download the encrypted model:
+
+    ```bash
+    hf download <PUBLISHER_USERNAME>/<MODEL_NAME> --local-dir ./models/<MODEL_NAME>
+    ```
+    
+    Replace `<PUBLISHER_USERNAME>/<MODEL_NAME>` with your actual model identifier from the Deploy tab.
+
+    **Example** (using the free demo model):
+    ```bash
+    hf download koalavault/qwen3-0.6b --local-dir ./models/qwen3-0.6b
+    ```
+  </Step>
+</Steps>
+
+# Deploy Model
+
+> Before deploying, ensure you have Docker installed on your system ([Install Docker](https://docs.docker.com/get-docker/)). GPU support is recommended for optimal performance.
+
+For detailed system requirements and hardware specifications, see the [vLLM Installation Guide](https://docs.vllm.ai/en/latest/getting_started/installation.html).
+
+<Note>
+Currently, KoalaVault only supports:
+- Models in **safetensors** format (other formats like GGUF are not supported yet)
+- Deployment via **vLLM** inference engine only
+</Note>
+
+<Steps>
+  <Step title="Pull the Docker Image">
+    Pull the KoalaVault enhanced vLLM docker image for your architecture:
+    
+    <Tabs>
+      <Tab title="GPU (x86/arm64)" icon="server">
+        ```bash
+        docker pull koalavault/vllm-openai:latest
+        ```
+      </Tab>
+      <Tab title="CPU (x86/arm64)" icon="microchip">
+        ```bash
+        docker pull koalavault/vllm-cpu:latest
+        ```
+      </Tab>
+      <Tab title="Apple Silicon (arm)" icon="apple">
+        ```bash
+        docker pull koalavault/vllm-cpu:latest
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Get API Key and Set Environment Variable">
+    1. Generate your KoalaVault API key ([generate KoalaVault API key](https://www.koalavault.ai/api-keys))
+    
+    2. Set the API key as an environment variable:
+    
+    ```bash
+    export KOALAVAULT_API_KEY=sk-your-api-key-here
+    ```
+  </Step>
+
+  <Step title="Deploy with Docker">
+    Run the Docker container with the downloaded model:
+    
+    <Note>
+    `<PUBLISHER_KOALAVAULT_USERNAME>` is the KoalaVault username of the model publisher (who sells the model), not necessarily the publisher's username on HuggingFace.
+    </Note>
+
+    <Warning>
+    **Docker Mount Limitation**: Due to security restrictions, the entire `./models` directory must be mounted to `/models` in the container. You cannot mount individual model subdirectories. This ensures proper model decryption and security enforcement.
+    </Warning>
+
+    <Tabs>
+      <Tab title="Nvidia GPU (x86/arm64)" icon="server">
+        
+        > For GPU deployment details, see [vLLM Docker Deployment Guide](https://docs.vllm.ai/en/latest/deployment/docker.html).
+        
+        ```bash
+        docker run --runtime nvidia --gpus all \
+          -v ./models:/models \
+          -p 8000:8000 \
+          --ipc=host \
+          -e KOALAVAULT_API_KEY=$KOALAVAULT_API_KEY \
+          --read-only \
+          --cap-drop ALL \
+          --cap-add DAC_OVERRIDE \
+          --tmpfs /tmp:exec,nosuid,nodev \
+          koalavault/vllm-openai:latest \
+          --koalavault-model <PUBLISHER_KOALAVAULT_USERNAME>/<MODEL_NAME> \
+          --model /models/<MODEL_NAME> \
+          --max-model-len=2048 
+        ```
+
+        **Example**:
+        ```bash
+        docker run --runtime nvidia --gpus all \
+          -v ./models:/models \
+          -p 8000:8000 \
+          --ipc=host \
+          -e KOALAVAULT_API_KEY=$KOALAVAULT_API_KEY \
+          --read-only \
+          --cap-drop ALL \
+          --cap-add DAC_OVERRIDE \
+          --tmpfs /tmp:exec,nosuid,nodev \
+          koalavault/vllm-openai:latest \
+          --koalavault-model koalavault/qwen3-0.6b \
+          --model /models/qwen3-0.6b \
+          --max-model-len=2048 
+        ```
+      </Tab>
+      
+      <Tab title="CPU (x86/arm64)" icon="microchip">
+        
+        > For CPU deployment details, see [vLLM CPU Installation Guide](https://docs.vllm.ai/en/latest/getting_started/installation/cpu.html#intelamd-x86_4) for x86 and [ARM AArch64](https://docs.vllm.ai/en/latest/getting_started/installation/cpu.html#arm-aarch64_3) for ARM.
+        
+        ```bash
+        docker run --rm \
+          -v ./models:/models \
+          --shm-size=4g \
+          -p 8000:8000 \
+          -e VLLM_CPU_KVCACHE_SPACE=<KV cache space> \
+          -e VLLM_CPU_OMP_THREADS_BIND=<CPU cores for inference> \
+          -e KOALAVAULT_API_KEY=$KOALAVAULT_API_KEY \
+          --read-only \
+          --cap-drop ALL \
+          --cap-add DAC_OVERRIDE \
+          --cap-add SYS_NICE \
+          --tmpfs /tmp:exec,nosuid,nodev \
+          koalavault/vllm-cpu:latest \
+          --koalavault-model <PUBLISHER_KOALAVAULT_USERNAME>/<MODEL_NAME> \
+          --model /models/<MODEL_NAME> \
+          --max-model-len=2048 
+        ```
+
+        **Example**:
+        ```bash
+        docker run --rm \
+          -v ./models:/models \
+          --shm-size=4g \
+          -p 8000:8000 \
+          -e VLLM_CPU_KVCACHE_SPACE=4 \
+          -e VLLM_CPU_OMP_THREADS_BIND=0-3 \
+          -e KOALAVAULT_API_KEY=$KOALAVAULT_API_KEY \
+          --read-only \
+          --cap-drop ALL \
+          --cap-add DAC_OVERRIDE \
+          --cap-add SYS_NICE \
+          --tmpfs /tmp:exec,nosuid,nodev \
+          koalavault/vllm-cpu:latest \
+          --koalavault-model koalavault/qwen3-0.6b \
+          --model /models/qwen3-0.6b \
+          --max-model-len=2048 
+        ```
+      </Tab>
+      
+      <Tab title="Apple Silicon (arm)" icon="apple">
+        
+        > For Apple Silicon deployment details, see [vLLM Apple Silicon Installation Guide](https://docs.vllm.ai/en/latest/getting_started/installation/cpu.html#apple-silicon_3).
+        
+        
+        ```bash
+        docker run --rm \
+          -v ./models:/models \
+          --shm-size=4g \
+          -p 8000:8000 \
+          -e VLLM_CPU_KVCACHE_SPACE=<KV cache space> \
+          -e VLLM_CPU_OMP_THREADS_BIND=<CPU cores for inference> \
+          -e KOALAVAULT_API_KEY=$KOALAVAULT_API_KEY \
+          --read-only \
+          --cap-drop ALL \
+          --cap-add SYS_NICE \
+          --tmpfs /tmp:exec,nosuid,nodev \
+          koalavault/vllm-cpu:latest \
+          --koalavault-model <PUBLISHER_KOALAVAULT_USERNAME>/<MODEL_NAME> \
+          --model /models/<MODEL_NAME> \
+          --max-model-len=2048 
+        ```
+
+        **Example** (using the pre-downloaded demo model):
+        ```bash
+        docker run --rm \
+          -v ./models:/models \
+          --shm-size=4g \
+          -p 8000:8000 \
+          -e VLLM_CPU_KVCACHE_SPACE=4 \
+          -e VLLM_CPU_OMP_THREADS_BIND=0-3 \
+          -e KOALAVAULT_API_KEY=$KOALAVAULT_API_KEY \
+          --read-only \
+          --cap-drop ALL \
+          --cap-add SYS_NICE \
+          --tmpfs /tmp:exec,nosuid,nodev \
+          koalavault/vllm-cpu:latest \
+          --koalavault-model koalavault/qwen3-0.6b \
+          --model /models/qwen3-0.6b \
+          --max-model-len=2048 
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+  
+  <Step title="Test Your Deployment">
+    Once the container is running, you can test it with a simple request:
+
+    ```bash
+    curl http://localhost:8000/v1/chat/completions \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "/models/qwen3-0.6b",
+        "messages": [
+          {"role": "user", "content": "Say hello in one sentence"}
+        ],
+        "max_tokens": 50
+      }'
+    ```
+
+    You should see a JSON response with the model's generated text.
+
+    <Tip>
+    For more API examples and usage patterns, see the [vLLM OpenAI-Compatible API documentation](https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html).
+    </Tip>
+  </Step>
+</Steps>
+
+# Understanding Model Encryption
+
+<Note>
+**Curious what happens without proper authentication/decryption?**
+
+There are two scenarios to understand:
+
+1. **KoalaVault images without authorization**: Will fail to start with "No suitable decryption key available" error
+2. **Standard vLLM images with encrypted models**: Will start but produce gibberish or crash during inference
+
+The following demonstrates scenario 2 - what occurs when running an encrypted model with standard vLLM images.
+</Note>
+
+**Expected Result:**
+- ✅ Container starts and model loads (due to valid safetensors format)
+- ❌ Produces gibberish output or crashes (due to encrypted tensor data)
+- ❌ No meaningful text generation possible (of course!)
+
+<Steps>
+  <Step title="Run Without Decryption">
+    Try running the encrypted model with standard vLLM images (without KoalaVault authentication):
+
+    <Tabs>
+      <Tab title="Nvidia GPU (x86/arm64)" icon="server">
+        ```bash
+        # This will load but produce gibberish output
+        docker run --runtime nvidia --gpus all \
+          -v ./models:/models \
+          -p 8000:8000 \
+          --ipc=host \
+          vllm/vllm-openai:latest \
+          --model /models/qwen3-0.6b \
+          --max-model-len=2048
+        ```
+      </Tab>
+      
+      <Tab title="CPU (x86/arm64)" icon="microchip">
+        ```bash
+        # This will load but produce gibberish output
+        docker run --rm \
+          -v ./models:/models \
+          --shm-size=4g \
+          -p 8000:8000 \
+          -e VLLM_CPU_KVCACHE_SPACE=4 \
+          -e VLLM_CPU_OMP_THREADS_BIND=0-3 \
+          --cap-add SYS_NICE \
+          koalavault/vllm-cpu-base-amd64:v0.11.0 \
+          --model /models/qwen3-0.6b \
+          --max-model-len=2048
+        ```
+      </Tab>
+      
+      <Tab title="Apple Silicon (arm)" icon="apple">
+        ```bash
+        # This will load but produce gibberish output
+        docker run --rm \
+          -v ./models:/models \
+          --shm-size=4g \
+          -p 8000:8000 \
+          -e VLLM_CPU_KVCACHE_SPACE=4 \
+          -e VLLM_CPU_OMP_THREADS_BIND=0-3 \
+          --cap-add SYS_NICE \
+          koalavault/vllm-cpu-base-arm64:v0.11.0 \
+          --model /models/qwen3-0.6b \
+          --max-model-len=2048
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Test the Deployment">
+    Try making a request to the running container:
+
+    ```bash
+    curl http://localhost:8000/v1/chat/completions \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "/models/qwen3-0.6b",
+        "messages": [
+          {"role": "user", "content": "Say hello in one sentence"}
+        ],
+        "max_tokens": 50
+      }'
+    ```
+
+    The request may complete but return nonsensical text, or the container may crash during processing.
+    
+    **Why?** The tensor data (model weights) is encrypted. Standard vLLM images can read the safetensors file format, but without proper decryption via KoalaVault authentication, the model processes encrypted weights, resulting in nonsensical output or system instability.
+
+  </Step>
+</Steps>
+
+# Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Advanced Docker Options" icon="docker" href="/tools/docker-run-guide">
+    Learn about advanced deployment configurations and security considerations
+  </Card>
+  
+  <Card title="Security Architecture" icon="shield" href="/security/architecture">
+    Learn how KoalaVault protects encrypted models through sealed container environments and cryptographic attestation
+  </Card>
+</CardGroup>

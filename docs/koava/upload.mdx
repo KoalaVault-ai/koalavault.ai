@@ -1,0 +1,75 @@
+---
+title: "koava upload"
+description: "Upload encrypted model file metadata to KoalaVault"
+---
+
+# Usage
+
+```bash
+koava upload <MODEL_PATH> [OPTIONS]
+```
+
+For help:
+```bash
+koava upload -h
+```
+
+# Description
+
+The `upload` command uploads the metadata (i.e., the header) of your encrypted model files to KoalaVault's servers. 
+
+<Note>
+**Important**: After uploading metadata to KoalaVault, you must also create a model on Hugging Face, upload the complete encrypted model files, and then update the KoalaVault model page with the Hugging Face URL. You can use the [`koava push`](/koava/push) command to do this complete workflow in one step.
+</Note>
+
+This is the final step in the manual workflow. For most users, the [`koava push`](/koava/push) command is recommended as it handles create, encrypt, and upload in one step.
+
+# Examples
+
+```bash
+# Basic upload
+koava upload ./my-model
+
+# Upload with custom name
+koava upload ./my-model --name "my-encrypted-model"
+
+# Force upload (overwrite existing)
+koava upload ./my-model --force
+```
+
+# Advanced
+
+## Arguments
+
+### MODEL_PATH
+Directory containing encrypted model files (required).
+
+## Options
+
+### --name, -n
+Model name on KoalaVault (must match the model name on KoalaVault, defaults to directory name).
+
+<Note>
+The model name must also match the model name specified when [encrypting](/koava/encrypt) the model files.
+
+KoalaVault will failed when veriying the encryption and signing keys, leading to rejection of the upload.
+</Note>
+
+```bash
+koava upload ./my-model --name "my-encrypted-model"
+```
+
+### --force, -f
+
+When the model files have already been uploaded to KoalaVault, this option allows you to overwrite the existing files without errors.
+
+
+```bash
+koava upload ./my-model --force
+```
+
+# Related Commands
+
+- [koava create](/koava/create) - Create model on KoalaVault
+- [koava encrypt](/koava/encrypt) - Encrypt model files
+- [koava push](/koava/push) - Complete workflow (create + encrypt + upload)

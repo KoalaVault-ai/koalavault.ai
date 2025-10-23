@@ -1,0 +1,157 @@
+---
+title: "koava encrypt"
+description: "Encrypt safetensors files to encrypted format"
+---
+
+# Usage
+
+```bash
+koava encrypt <MODEL_PATH> [OPTIONS]
+```
+
+Aliases:
+```bash
+koava enc <MODEL_PATH> [OPTIONS]
+```
+
+For help:
+```bash
+koava encrypt -h
+```
+
+# Description
+
+The `encrypt` command converts standard `safetensors` files to KoalaVault's encrypted format (i.e, cryptotensors). See [CryptoTensors File Format](/security/cryptotensors) for detailed information about the encrypted format.
+
+<Note>
+**Important**: After encryption, you must create a model on Hugging Face, upload the complete encrypted model files, and then update the KoalaVault model page with the Hugging Face URL. You can use the [`koava push`](/koava/push) command to do this complete workflow in one step.
+</Note>
+
+<Note>
+Currently, KoalaVault only supports `safetensors` format files.
+</Note>
+
+## Prerequisites
+
+Before running `encrypt`, you must ensure that a model has been created on KoalaVault (either manually or using [`koava create`](/koava/create)). This is required because KoalaVault generates model-specific encryption and user-specific signing keys for each publisher and model only after a model is created. The `encrypt` command needs to retrieve these keys to encrypt and sign your model files.
+
+## Backup Process
+
+When encrypting in-place (without specifying `--output`), the `encrypt` command automatically creates a backup of your original files before encryption. The backup is stored in a `.backup` directory within your model folder, ensuring your original files are preserved in case you need to restore them later. 
+
+# Examples
+
+## Basic Encryption Workflow
+
+```bash
+# 1. Preview what will be encrypted
+koava encrypt ./my-model --dry-run
+
+# 2. Encrypt the model
+koava encrypt ./my-model -n "my-awesome-model"
+
+# 3. Verify encryption was successful
+ls ./my-model/
+```
+
+## Custom Output Workflow
+
+```bash
+# 1. Encrypt to separate directory
+koava encrypt ./my-model --output ./encrypted-models --name "my-llm"
+
+# 2. Verify output
+ls ./encrypted-models/
+```
+
+# Advanced
+
+## Arguments
+
+### MODEL_PATH
+Directory containing safetensors files to encrypt (required).
+
+## Options
+
+### --name, -n
+Model name for encryption key retrieval (defaults to directory name), must match the model name on the KoalaVault.
+
+```bash
+koava encrypt ./my-model --name "llama-7b-chat"
+```
+
+### --output, -o
+Output directory for encrypted files (defaults to in-place encryption).
+
+When specified, the encrypted model will be saved in the specified directory.
+
+```bash
+koava encrypt ./my-model --output ./encrypted-models
+```
+
+### --no-backup
+Skip automatic backup (only works when `--output` is not specified, i.e. when encrypting in-place).
+
+When not specified, a backup directory `.backup` will be created in the same directory as the model. 
+The original model files will be copied to the backup directory before encryption.
+
+```bash
+koava encrypt ./my-model --no-backup
+```
+
+<Note>
+**Warning**: Skipping backup is not recommended. If encryption fails, you may lose your original files.
+</Note>
+
+### --files
+Only encrypt specific model files (comma-separated, only includes model files, not configuration files).
+
+When not specified, all model files will be encrypted.
+
+```bash
+koava encrypt ./my-model --files "model1.safetensors,model2.safetensors"
+```
+
+### --exclude
+Exclude specific model files from encryption (comma-separated, only includes model files, not configuration files).
+
+When not specified, all model files will be encrypted.
+
+```bash
+koava encrypt ./my-model --exclude "model1.safetensors,model2.safetensors"
+```
+
+### --dry-run
+Preview what would be encrypted without making changes.
+
+```bash
+koava encrypt ./my-model --dry-run
+```
+
+### --force
+Force encryption even if backup directory exists.
+
+When a backup directory already exists with unencrypted files:
+- Without `--force`: Encrypts from the existing backup files
+- With `--force`: Overwrites the backup directory with current files, then encrypts
+
+This flag only affects in-place encryption when a backup directory already exists.
+
+```bash
+koava encrypt ./my-model --force
+```
+
+# Restore Original Files
+
+To restore original files:
+```bash
+koava restore ./my-model
+```
+
+See [koava restore](/koava/restore) for details.
+
+# Related Commands
+
+- [koava restore](/koava/restore) - Restore original files from backup
+- [koava upload](/koava/upload) - Upload encrypted model to KoalaVault
+- [koava push](/koava/push) - Complete workflow (create + encrypt + upload)

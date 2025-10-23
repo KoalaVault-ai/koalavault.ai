@@ -1,0 +1,225 @@
+---
+title: "Docker Run Guide"
+description: "Complete guide for deploying enhanced vLLM Docker images with security requirements and configuration options"
+---
+
+- The enhanced vLLM Docker images are built on top of the official **[vLLM](https://vllm.ai/)** container to provide secure inference services for encrypted models.  
+- To preserve security, we enforce additional restrictions on container startup.  
+- The requirements are outlined below, including immutable and configurable flags.
+
+<Note>
+**Want to understand how security is implemented?**  
+See our [Security Architecture](/security/architecture) documentation for detailed technical insights.
+</Note>
+
+## Supported vLLM Versions
+
+All images are available on our [Docker Hub](https://hub.docker.com/r/koalavault):
+| Platform | Image Name | Base Image |
+|----------|------------|------------|
+| GPU (x86_64/ARM64) | `koalavault/vllm-openai:v0.11.0` | `vllm/vllm-openai:v0.11.0` |
+| CPU (x86_64/ARM64) | `koalavault/vllm-cpu:v0.11.0` | `koalavault/vllm-cpu-base-amd64:v0.11.0`,`koalavault/vllm-cpu-base-arm64:v0.11.0` |
+
+- **`latest` tag**: Points to the latest vLLM version (currently `v0.11.0`) with the most recent CryptoTensors build
+
+
+## Pull the Docker Image
+
+<Tabs>
+  <Tab title="GPU (x86/arm64)" icon="server">
+    ```bash
+    docker pull koalavault/vllm-openai:latest
+    ```
+  </Tab>
+  <Tab title="CPU (x86/arm64)" icon="microchip">
+    ```bash
+    docker pull koalavault/vllm-cpu:latest
+    ```
+  </Tab>
+  <Tab title="Apple Silicon (arm)" icon="apple">
+    ```bash
+    docker pull koalavault/vllm-cpu:latest
+    ```
+  </Tab>
+</Tabs>
+
+## Deploy with Docker
+
+Deploying encrypted models with KoalaVault is **almost identical** to deploying standard models, except for adding a few additional flags to the container startup command to ensure model decryption occurs in a secure environment.
+
+The typical docker deployment command looks like below:
+
+<Tabs>
+  <Tab title="Nvidia GPU (x86/arm64)" icon="server">
+    
+    ```bash
+    docker run --runtime nvidia --gpus all \
+      -v ./models:/models \
+      -p 8000:8000 \
+      --ipc=host \
+      -e KOALAVAULT_API_KEY=$KOALAVAULT_API_KEY \
+      --read-only \
+      --cap-drop ALL \
+      --cap-add DAC_OVERRIDE \
+      --tmpfs /tmp:exec,nosuid,nodev \
+      koalavault/vllm-openai:latest \
+      --koalavault-model <PUBLISHER_KOALAVAULT_USERNAME>/<MODEL_NAME> \
+      --model /models/<MODEL_NAME> \
+      --max-model-len=2048 
+    ```
+
+  </Tab>
+  
+  <Tab title="CPU (x86/arm64)" icon="microchip">
+    
+    ```bash
+    docker run --rm \
+      -v ./models:/models \
+      --shm-size=4g \
+      -p 8000:8000 \
+      -e VLLM_CPU_KVCACHE_SPACE=<KV cache space> \
+      -e VLLM_CPU_OMP_THREADS_BIND=<CPU cores for inference> \
+      -e KOALAVAULT_API_KEY=$KOALAVAULT_API_KEY \
+      --read-only \
+      --cap-drop ALL \
+      --cap-add DAC_OVERRIDE \
+      --cap-add SYS_NICE \
+      --tmpfs /tmp:exec,nosuid,nodev \
+      koalavault/vllm-cpu:latest \
+      --koalavault-model <PUBLISHER_KOALAVAULT_USERNAME>/<MODEL_NAME> \
+      --model /models/<MODEL_NAME> \
+      --max-model-len=2048 
+    ```
+  </Tab>
+  
+  <Tab title="Apple Silicon (arm)" icon="apple">
+    
+    ```bash
+    docker run --rm \
+      -v ./models:/models \
+      --shm-size=4g \
+      -p 8000:8000 \
+      -e VLLM_CPU_KVCACHE_SPACE=<KV cache space> \
+      -e VLLM_CPU_OMP_THREADS_BIND=<CPU cores for inference> \
+      -e KOALAVAULT_API_KEY=$KOALAVAULT_API_KEY \
+      --read-only \
+      --cap-drop ALL \
+      --cap-add SYS_NICE \
+      --tmpfs /tmp:exec,nosuid,nodev \
+      koalavault/vllm-cpu:latest \
+      --koalavault-model <PUBLISHER_KOALAVAULT_USERNAME>/<MODEL_NAME> \
+      --model /models/<MODEL_NAME> \
+      --max-model-len=2048 
+    ```
+
+  </Tab>
+</Tabs>
+
+The additional flags/setup are detailed below:
+
+<ResponseField name="--read-only" type="required, cannot be changed">
+<Expandable title="--read-only properties">
+- This flag makes the container filesystem overall read-only, preventing any modifications to system files and binaries
+- Stops attackers (or misconfigurations) from entering the container, modifying vLLM binaries/code, or exporting decrypted weights via patched logic
+- Code attestation is performed before decryption, and runtime read-only detection is performed during execution
+```bash
+docker run ... --read-only ...
+```
+</Expandable>
+</ResponseField>
+
+
+<ResponseField name="--cap-drop ALL" type="required, cannot be changed">
+<Expandable title="--cap-drop ALL properties">
+- This flag Guarantees that ambient and bounding capability sets are cleared (CapBnd≈0) from the container
+- Prevent unexpected behavior or attack surfaces such as `CAP_SYS_ADMIN`, `CAP_SYS_MODULE`, `CAP_SYS_RAWIO`, `CAP_SYS_CHROOT` etc. 
+```bash
+docker run ... --cap-drop ALL ...
+```
+</Expandable>
+</ResponseField>
+
+<ResponseField name="--tmpfs /tmp:exec,nosuid,nodev" type="required, cannot be changed">
+<Expandable title="--tmpfs /tmp:exec,nosuid,nodev properties">
+- This flag creates an collective writable in-memory temporary filesystem for runtime caches, config, etc., which is required by vLLM, Triton, PyTorch, etc.
+- Requires `exec` permission because some components (e.g., Triton JIT, PyTorch extensions) emit compiled artifacts that must be executed at runtime
+```bash
+docker run ... --tmpfs /tmp:exec,nosuid,nodev ...
+```
+</Expandable>
+</ResponseField>
+
+
+<ResponseField name="koalavault-api-key" type="required, choose one">
+<Expandable title="koalavault-api-key properties">
+- The vLLM docker deployment requires a [KoalaVault API key](https://www.koalavault.ai/api-keys) for authentication and key access
+- **Option 1: Through environment variable**
+ ```bash
+  export KOALAVAULT_API_KEY=sk-your-api-key-here
+
+  docker run ... -e KOALAVAULT_API_KEY=sk-your-api-key-here ...
+  ```
+- **Option 2: Through command line argument**
+ ```bash
+  docker run ... --koalavault-api-key sk-your-api-key-here ...
+  ```
+</Expandable>
+</ResponseField>
+
+<ResponseField name="--koalavault-model" type="required, configurable">
+<Expandable title="--koalavault-model properties">
+- The model identifier in format "PUBLISHER_KOALAVAULT_USERNAME/MODEL_NAME" 
+- Note: `PUBLISHER_KOALAVAULT_USERNAME` is the **KoalaVault username**, not necessarily the publisher's username on HuggingFace
+
+  ```bash
+  docker run ... --koalavault-model <PUBLISHER_KOALAVAULT_USERNAME>/<MODEL_NAME> ...
+  ```
+</Expandable>
+</ResponseField>
+
+<ResponseField name="model-mount-options" type="required, choose one">
+<Expandable title="model-mount-options properties">
+- The model files must be mounted exactly as specified in the options below, which are the only allowed writable mounts in the container
+- **Option 1: mounted to `/models`**
+  <Note>
+  Currently, you cannot mount individual model directories to the subdirectory of `/models`, such as `-v qwen3-0.6b:/models/qwen3-0.6b`, which will cause unexpected writable mount errors. We will fix this bug in the next release.
+  </Note>
+  ```bash
+  docker run ... -v <HOST_MODEL_DIR>:/models ...
+  ```
+
+- **Option 2: mounted to `root/.cache/huggingface`**
+  <Warning>
+  Currently, we do not support mounting to `~/.cache/huggingface`, we will fix this bug in the next release.
+  </Warning>
+  ```bash
+  docker run ... -v ~/.cache/huggingface:/root/.cache/huggingface ...
+  ```
+</Expandable>
+</ResponseField>
+
+<ResponseField name="--cap-add SYS_NICE" type="required, CPU deployment only">
+<Expandable title="--cap-add SYS_NICE properties">
+
+- This flag adds back permission for CPU scheduling, enabling CPU pinning for performance optimization
+- Without this flag, the container's root user cannot set process niceness or CPU affinity, which is required by vLLM
+
+</Expandable>
+</ResponseField>
+
+<ResponseField name="--cap-add DAC_OVERRIDE" type="required, Linux only">
+<Expandable title="--cap-add DAC_OVERRIDE properties">
+
+- This flag adds back minimal permission for file access operations, enabling KalaVault client to perform in-place model file metadata replacement for [security considerations](/security/architecture)
+- Without this flag, the model directory would need write permissions for "other" users, because `--cap-drop ALL` prevents the container's root user from writing files
+- Still secure because the container's root user can only write to mounted model directories, while the `--read-only` flag prevents writing to vLLM code or binaries
+
+</Expandable>
+</ResponseField>
+
+## Additional Notes
+
+All other requirements and best practices remain the same as the official vLLM container.  
+Please refer to the vLLM documentation for further details on system requirements, GPU support, and advanced configuration:
+
+👉 [vLLM Official Documentation](https://docs.vllm.ai/en/stable/deployment/docker.html)

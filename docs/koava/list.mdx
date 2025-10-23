@@ -1,0 +1,46 @@
+---
+title: "koava list"
+description: "List files for a model stored on KoalaVault"
+---
+
+# Usage
+
+```bash
+koava list <MODEL_IDENTIFIER>
+```
+
+Aliases:
+```bash
+koava ls <MODEL_IDENTIFIER>
+```
+
+For help:
+```bash
+koava list -h
+```
+
+# Description
+
+The `list` command displays all files associated with a model on KoalaVault, including file names and upload timestamps.
+
+This is useful for verifying uploads and checking model contents.
+
+# Examples
+
+```bash
+# List your own model
+koava list my-model
+```
+
+# Advanced
+
+## Arguments
+
+### MODEL_IDENTIFIER
+Model to list files for (required). You can only list files for your own models. 
+
+# Related Commands
+
+- [koava upload](/koava/upload) - Upload files to KoalaVault
+- [koava remove](/koava/remove) - Delete files from KoalaVault
+- [koava status](/koava/status) - Check authentication and connection

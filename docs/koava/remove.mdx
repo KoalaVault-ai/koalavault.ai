@@ -1,0 +1,61 @@
+---
+title: "koava remove"
+description: "Delete model files from KoalaVault"
+---
+
+# Usage
+
+```bash
+koava remove <MODEL_IDENTIFIER> [OPTIONS]
+```
+
+Aliases:
+```bash
+koava rm <MODEL_IDENTIFIER> [OPTIONS]
+```
+
+For help:
+```bash
+koava remove -h
+```
+
+# Description
+
+The `remove` command permanently deletes all files associated with a model from KoalaVault. This action cannot be undone.
+
+<Warning>
+This is a destructive operation! Deleted models and files cannot be recovered. Make sure you have local backups.
+</Warning>
+
+# Examples
+
+```bash
+# Remove with confirmation
+koava remove my-model
+
+# Force remove (no confirmation)
+koava remove my-model --force
+```
+
+# Advanced
+
+## Arguments
+
+### MODEL_IDENTIFIER
+Model to remove files from (required). You can only remove files from your own models. 
+
+## Options
+
+### --force, -f
+Delete without confirmation prompt.
+
+```bash
+koava remove my-model --force
+```
+
+# Related Commands
+
+- [koava list](/koava/list) - List files before deleting
+- [koava create](/koava/create) - Create model on KoalaVault
+- [koava upload](/koava/upload) - Upload files to KoalaVault
+- [koava push](/koava/push) - Complete workflow (create + encrypt + upload)

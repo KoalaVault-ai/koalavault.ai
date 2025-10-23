@@ -1,0 +1,54 @@
+---
+title: "koava restore"
+description: "Restore original files from local backup"
+---
+
+# Usage
+
+```bash
+koava restore <MODEL_PATH> [OPTIONS]
+```
+
+For help:
+```bash
+koava restore -h
+```
+
+# Description
+
+The `restore` command undoes encryption by restoring original files from the automatic backup created by `koava encrypt`. 
+
+<Note>
+The `restore` command is only needed for in-place encryption (when `--output` was not specified). When encrypting to a different directory with `--output`, your original files remain unchanged in the source directory, so no restoration is needed.
+</Note>
+
+## How Restore Works
+
+The backup and restore operations only involve safetensors files. When you restore:
+
+1. All encrypted safetensors files in the model directory are removed
+2. Original safetensors files are copied back from the `.backup` directory
+3. The model directory is restored to its initial unencrypted state
+
+
+# Examples
+
+```bash
+koava restore ./my-model
+```
+
+# Advanced
+
+## Arguments
+
+### MODEL_PATH
+Directory containing the encrypted model and `.backup` folder (required).
+
+## Options
+
+### --force, -f
+Restore without confirmation prompt.
+
+# Related Commands
+
+- [koava encrypt](/koava/encrypt) - Encrypt model files (creates backup)

@@ -1,122 +1,148 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "KoalaVault",
+  "description": "Secure marketplace for AI models with blockchain-based payments. Model creators can monetize their work while buyers securely deploy and run encrypted models.",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#2563eb",
+    "light": "#3b82f6",
+    "dark": "#1d4ed8"
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "https://www.koalavault.ai"
   },
   "favicon": "/favicon.svg",
-  "navigation": {
-    "tabs": [
+  "appearance": {
+    "default": "system",
+    "strict": false
+  },
+  "styling": {
+    "codeblocks": "system"
+  },
+  "navbar": {
+    "links": [
       {
-        "tab": "Guides",
-        "groups": [
+        "label": "GitHub",
+        "href": "https://github.com/koalavault-ai/koalavault.ai",
+        "icon": "github",
+        "iconType": "brands"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Explore Models",
+      "href": "https://www.koalavault.ai/models"
+    }
+  },
+  "banner": {
+    "content": "🚀 KoalaVault is now live! Secure marketplace for AI models with blockchain-based payments.",
+    "dismissible": true
+  },
+  "interaction": {
+    "drilldown": true
+  },
+  "navigation": {
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Back to Home",
+          "icon": "house",
+          "href": "https://www.koalavault.ai"
+        }
+      ]
+    },
+    "groups": [
+      {
+        "group": "Getting Started",
+        "pages": [
+          "getting-started/index",
           {
-            "group": "Getting started",
+            "group": "Quick Start",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
-            ]
-          },
-          {
-            "group": "Customization",
-            "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "getting-started/quick-start",
+              "getting-started/publish-models",
+              "getting-started/deploy-models"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
-        "groups": [
+        "group": "Koava CLI",
+        "pages": [
+          "koava/index",
           {
-            "group": "API documentation",
+            "group": "Authentication & Configuration",
             "pages": [
-              "api-reference/introduction"
+              "koava/login",
+              "koava/logout",
+              "koava/status",
+              "koava/config"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Publishing Models",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "koava/encrypt",
+              "koava/restore",
+              "koava/upload",
+              "koava/push"
+            ]
+          },
+          {
+            "group": "Model Management",
+            "pages": [
+              "koava/create",
+              "koava/list",
+              "koava/remove"
             ]
           }
         ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
+      },
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "group": "vLLM Deployment",
+        "pages": [
+          "tools/docker-run-guide"
+        ]
+      },
+      {
+        "group": "Security & Policies",
+        "hidden": true,
+        "pages": [
+          "security/architecture",
+          "security/cryptotensors",
+          "security/trust-remote-code"
+        ]
+      },
+      {
+        "group": "Cryptocurrency",
+        "pages": [
+          "crypto/wallet-setup"
+        ]
       }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "website": "https://www.koalavault.ai",
+      "github": "https://github.com/koalavault-ai/koalavault.ai"
     }
+  },
+  "feedback": {
+    "thumbsRating": true,
+    "suggestEdit": true,
+    "raiseIssue": true
+  },
+  "search": {
+    "prompt": "Search KoalaVault docs..."
+  },
+  "integrations": {
+    "plausible": {
+      "domain": "docs.koalavault.ai"
+    }
+  },
+  "contextual": {
+    "options": ["copy"]
   }
 }

@@ -1,0 +1,168 @@
+---
+title: "Koava CLI Tool"
+description: "Command-line tool for secure AI model encryption and management on KoalaVault"
+---
+
+# Installation
+
+## Supported Platforms
+
+Koava supports the following platforms and architectures:
+
+- **Linux**: x86_64, ARM64 (aarch64)
+- **macOS**: x86_64 (Intel), ARM64 (Apple Silicon)
+- **Windows**: x86_64, ARM64
+
+## Basic Installation
+
+```bash
+pip install -U koava
+```
+
+## With Hugging Face CLI Support (Recommended)
+
+```bash
+pip install -Ukoava[huggingface]
+```
+
+This includes the Hugging Face CLI for easier model downloading and management.
+
+<Note>
+**Required for `push` command**: The `koava push` command requires Hugging Face CLI support. Install with `[huggingface]` to use the complete workflow.
+</Note>
+
+## Verify Installation
+
+```bash
+koava --help
+```
+
+# Typical Workflows
+
+## For First-Time Users
+
+```bash
+# 1. Install koava
+pip install -U koava[huggingface]
+
+# 2. Login koava
+koava login
+# Enter your API key when prompted
+
+# 3. Login Hugging Face CLI
+hf auth login
+# Enter your Hugging Face token when prompted
+
+# 4. Verify Status
+koava status
+
+# 5. Push your model (Complete workflow)
+koava push ./my-model --name "my-encrypted-model" --description "My awesome AI model"
+
+```
+
+## For Advanced Users
+
+### Manual Workflow
+
+For more control, use individual commands:
+
+```bash
+# Create model on KoalaVault
+koava create ./my-model --name "my-encrypted-model" --description "My awesome AI model"
+
+# Encrypt model files
+koava encrypt ./my-model --name "my-encrypted-model"
+
+# Upload metadata to KoalaVault
+koava upload ./my-model --name "my-encrypted-model"
+
+# Verify the results of upload
+koava list my-encrypted-model
+
+# Upload the complete encrypted model files to Hugging Face
+# This step requires Hugging Face CLI and will:
+# 1. Create a repository on Hugging Face (if it doesn't exist)
+# 2. Upload all files excluding backup folders
+hf repo create <your-hf-username>/my-encrypted-model --repo-type model
+hf upload <your-hf-username>/my-encrypted-model ./my-model --repo-type model --exclude ".backup" --exclude ".backup/**"
+
+# Restore from backup (if needed)
+koava restore ./my-model
+
+```
+
+### Advanced Operations
+
+For advanced operations and detailed command options, see the individual command documentation:
+
+- [koava encrypt](/koava/encrypt) - Advanced encryption options including dry-run and file selection
+- [koava upload](/koava/upload) - Custom upload configurations and options
+- [koava config](/koava/config) - Configuration management and settings
+
+
+
+# Commands
+
+## Authentication & Configuration
+
+<CardGroup cols={2}>
+  <Card title="login" icon="key" href="/koava/login">
+    Authenticate with KoalaVault API key
+  </Card>
+  
+  <Card title="logout" icon="right-from-bracket" href="/koava/logout">
+    Clear stored credentials
+  </Card>
+  
+  <Card title="status" icon="circle-info" href="/koava/status">
+    Check authentication status and Hugging Face CLI status
+  </Card>
+  
+  <Card title="config" icon="gear" href="/koava/config">
+    Manage configuration settings and CLI paths
+  </Card>
+</CardGroup>
+
+## Publishing Models
+
+<CardGroup cols={2}>
+  <Card title="push" icon="upload" href="/koava/push">
+    Complete workflow: create, encrypt, upload metadata, and publish to Hugging Face
+  </Card>
+  
+  <Card title="encrypt" icon="lock" href="/koava/encrypt">
+    Convert safetensors files to encrypted cryptotensors format
+  </Card>
+  
+  <Card title="upload" icon="cloud-arrow-up" href="/koava/upload">
+    Upload encrypted model metadata to KoalaVault
+  </Card>
+  
+  <Card title="restore" icon="clock-rotate-left" href="/koava/restore">
+    Restore original files from automatic backup after encryption
+  </Card>
+</CardGroup>
+
+## Model Management
+
+<CardGroup cols={2}>
+  <Card title="create" icon="plus" href="/koava/create">
+    Register a new model on KoalaVault
+  </Card>
+  
+  <Card title="list" icon="list" href="/koava/list">
+    Display all files associated with a model on KoalaVault
+  </Card>
+  
+  <Card title="remove" icon="trash" href="/koava/remove">
+    Permanently delete all files associated with a model from KoalaVault
+  </Card>
+</CardGroup>
+
+# Support
+
+- **Issues**: Report bugs or request features on [GitHub](https://github.com/koalavault-ai/koalavault.ai/issues)
+
+
+

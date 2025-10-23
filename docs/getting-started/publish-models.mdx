@@ -1,0 +1,134 @@
+---
+title: "Publish Models as a Seller"
+description: "This guide walks you through the process of encrypting, publishing and monetizing your LLM models on KoalaVault."
+---
+
+# Prepare Your Model
+
+> Before publishing models, make sure you have completed the [Account Setup](/getting-started/quick-start#account-setup).
+
+<Note>
+Currently, KoalaVault only supports models in **safetensors** format. Models in other formats (e.g., GGUF) are not supported yet.
+</Note>
+
+<Steps>
+  <Step title="Install koava CLI Tool">
+    The `koava` is the command-line tool of KoalaVault, used to encrypt and publish your LLM models.
+
+    Install the koava command-line tool with HuggingFace CLI support:
+
+    ```bash
+    pip install -U "koava[huggingface]"
+    ```
+  </Step>
+
+  <Step title="Authentication Setup">
+    1. Login to koava with your API key ([generate KoalaVault API key](https://www.koalavault.ai/api-keys)):
+    
+    ```bash
+    koava login
+    # Enter your KoalaVault API key when prompted
+    ```
+
+    2. Login to HuggingFace CLI (`hf`) with your token ([generate HuggingFace Token](https://huggingface.co/settings/tokens), choose `Write` access):
+
+    ```bash
+    hf auth login
+    # Enter your HuggingFace token when prompted
+    ```
+
+    3. Verify the authentication status:
+    ```bash
+    koava status
+    ```
+
+      You should see the authentication status as below:
+    
+    ```bash
+    # Version: 0.0.11
+    # Authentication: Authenticated
+    # Username: <your-username>
+    # Email: <your-email>
+    # Server: Connected 
+    # Hugging Face CLI: Logged in as <your-username>
+    ```
+  
+  </Step>
+
+  <Step title="Encrypt & Push Model">
+    1. Download [Qwen3-0.6B](https://huggingface.co/Qwen/Qwen3-0.6B) to your local directory:
+
+    ```bash
+    hf download Qwen/Qwen3-0.6B --local-dir ./qwen3-0.6b
+    ```
+
+    2. Encrypt and push your model to KoalaVault and HuggingFace:
+
+    ```bash
+    koava push ./qwen3-0.6b
+    ```
+    3. Your model is now created on KoalaVault and HuggingFace. 
+
+        **Full encrypted model**: hosted on HuggingFace, publicly accessible for download by anyone.
+        ```bash
+        https://huggingface.co/<your-huggingface-username>/qwen3-0.6b
+        ``` 
+        **Decryption keys and metadata**: securely hosted on KoalaVault to enforce access control and ensure buyer isolation.
+    
+        ```bash
+        https://www.koalavault.ai/<your-koalavault-username>/qwen3-0.6b
+        ```
+  </Step>
+</Steps>
+
+# Set Model Pricing & Publish
+
+<Steps>
+  <Step title="Set Model Pricing">
+    1. Visit [KoalaVault.ai](https://www.koalavault.ai) and navigate to **My Models**
+    2. Locate your newly pushed model from the list
+    3. Click on the model to open its detail page
+    4. Navigate to the **Pricing** tab and click **Create Pricing Strategy**
+    5. Configure your pricing options:
+       - Set a per-deployment price (or set to `0 USDT` for free models)
+    
+    <Note>
+    Your pricing strategy must be published before buyers can see it. Draft strategies are not visible to the public.
+    </Note>
+  </Step>
+
+  <Step title="Publish & Share Your Model">
+    Once your pricing is set, you're ready to publish! **Click the Publish button** on your model page to make it live.
+    
+    🎉 **Congratulations!** Your model is now live on the KoalaVault marketplace! 🌟
+    
+    ### Start Earning Automatically
+    
+    Every time someone purchases your model, **payments are automatically sent to your digital wallet** via blockchain transactions. No manual invoicing, no payment delays – just instant, secure payments directly to you.
+    
+    **Share your model and start monetizing:**
+    - Share your model page URL with your community
+    - Post on social media (Twitter, LinkedIn, Reddit)
+    - Include it in your research papers or blog posts
+    - Add it to your GitHub README or personal website
+    
+    <Tip>
+    The more you promote your model, the more deployments you'll get, and the more revenue you'll earn! Build your passive income stream with KoalaVault.
+    </Tip>
+  </Step>
+</Steps>
+
+# Next Steps
+
+Now that you've published your model, you can:
+
+<CardGroup cols={2}>
+  <Card title="Master the koava CLI" icon="terminal" href="/koava/index">
+    Deep dive into koava's advanced features for model encryption, management, and publishing workflows
+  </Card>
+  
+  <Card title="Test Your Encrypted Model" icon="rocket" href="/getting-started/deploy-models">
+    Deploy and test your own encrypted model to experience what buyers will see
+  </Card>
+</CardGroup>
+

@@ -1,0 +1,53 @@
+---
+title: "koava create"
+description: "Create a new model on KoalaVault"
+---
+
+# Usage
+
+```bash
+koava create <MODEL_NAME> [OPTIONS]
+```
+
+For help:
+```bash
+koava create -h
+```
+
+# Description
+
+The `create` command registers a new model on the KoalaVault. This is the first step in the manual workflow (advanced users).
+
+For most users, the [`koava push`](/koava/push) command is recommended as it combines create, encrypt, and upload in one step.
+
+# Examples
+
+```bash
+# Basic model creation
+koava create my-model
+
+# Create with description
+koava create my-model --description "Fine-tuned GPT-2 model for text generation"
+```
+
+# Advanced
+
+## Arguments
+
+### MODEL_NAME
+Name for your model on KoalaVault (required, alphanumeric, hyphens, underscores, no spaces).
+
+## Options
+
+### --description, -d
+Optional description for your model to explain what it does, training details, etc.
+
+```bash
+koava create my-model --description "My model description"
+```
+
+# Related Commands
+
+- [koava push](/koava/push) - Complete workflow (recommended)
+- [koava encrypt](/koava/encrypt) - Next step: encrypt files
+- [koava upload](/koava/upload) - Final step: upload files

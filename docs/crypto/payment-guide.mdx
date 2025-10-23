@@ -1,0 +1,190 @@
+---
+title: "Payment Guide"
+description: "Step-by-step guide for paying with cryptocurrency on KoalaVault"
+---
+
+This guide shows you how to complete payments for KoalaVault orders using cryptocurrency exchanges like Binance.
+
+# Prerequisites
+
+Before making a payment, ensure you have:
+
+- ✅ Created an order on KoalaVault (see [Deploy Models](/getting-started/deploy-models#buy-model))
+- ✅ A Binance account with USDT balance ([Sign up for Binance](https://www.binance.com))
+- ✅ Your order's payment address from the order detail page
+
+<Note>
+**First-time purchase?** We recommend using **anonymous payment**, which allows you to pay directly from exchanges like Binance without transferring to your registered wallet first.
+</Note>
+
+# Payment Methods
+
+<Steps>
+  <Step title="Pay with Binance">
+    ### Step 1: Get Payment Address
+    
+    From your KoalaVault order detail page, copy the **Payment Address** (seller's wallet address).
+
+    ### Step 2: Access Binance Withdrawal
+    
+    Go to Binance and navigate to the withdrawal page:
+    - **Global users**: [Binance Withdrawal](https://www.binance.com/en/my/wallet/account/main/withdrawal/crypto)
+    - **US users**: [Binance.US Withdrawal](https://www.binance.us/en/my/wallet/account/main/withdrawal/crypto)
+    
+    Click **Withdraw Crypto**.
+
+    ### Step 3: Configure Withdrawal
+
+    1. **Select Coin**: Choose `USDT` from the dropdown
+    2. **Withdraw to**: Paste the **Payment Address** you copied from KoalaVault
+    3. **Select Network**: Choose `BSC` (BNB Smart Chain)
+    4. **Amount**: Enter the exact amount shown in your order
+    5. Click **Withdraw**
+
+    <Warning>
+    **Important:** Make sure to:
+    - Use the exact payment amount from your order
+    - Select `BSC` network (not other networks like ERC20 or TRC20)
+    - Double-check the payment address before confirming
+    </Warning>
+
+    ### Step 4: Wait for Confirmation
+    
+    After clicking withdraw:
+    1. Complete any security verification (2FA, email code, etc.)
+    2. Wait for Binance to process the transaction (usually 1-5 minutes)
+    3. Once confirmed, you'll receive a transaction ID from Binance
+
+    <Tip>
+    You can track your transaction status on [BscScan](https://bscscan.com/) using the transaction ID.
+    </Tip>
+  </Step>
+
+  <Step title="Pay with Other Exchanges">
+    You can use other cryptocurrency exchanges that support USDT on BSC network:
+
+    ### Supported Exchanges
+    - Coinbase
+    - Kraken  
+    - KuCoin
+    - OKX
+    - And other major exchanges
+
+    ### General Steps
+    1. Copy the payment address from your KoalaVault order
+    2. Go to your exchange's withdrawal page
+    3. Select **USDT** as the coin
+    4. Select **BSC (BEP20)** as the network
+    5. Enter the payment address and amount
+    6. Complete the withdrawal
+
+    <Note>
+    The exact steps may vary by exchange. Refer to your exchange's documentation for specific withdrawal instructions.
+    </Note>
+  </Step>
+
+  <Step title="Pay with Your Wallet">
+    If you prefer to use your own crypto wallet:
+
+    ### Supported Wallets
+    - MetaMask
+    - Trust Wallet
+    - Coinbase Wallet
+    - Any BSC-compatible wallet
+
+    ### Steps
+    1. Ensure you have USDT on BSC network in your wallet
+    2. Copy the payment address from KoalaVault order
+    3. Send the exact amount of USDT to that address on BSC network
+    4. Save the transaction hash for confirmation
+
+    <Warning>
+    Make sure your wallet is connected to **BNB Smart Chain (BSC)** network, not Ethereum or other networks.
+    </Warning>
+  </Step>
+</Steps>
+
+# Confirm Your Payment
+
+After completing the payment, you need to confirm it on KoalaVault:
+
+<Steps>
+  <Step title="Submit Transaction ID">
+    1. Go back to your order detail page on KoalaVault
+    2. Copy the **Transaction ID** (hash) from your exchange or wallet
+    3. Paste it into the **Blockchain Transaction ID** field
+    4. Click **Confirm Payment**
+
+    <Tip>
+    Transaction IDs typically look like: `0x1234567890abcdef...` (66 characters)
+    </Tip>
+  </Step>
+
+  <Step title="Wait for Verification">
+    KoalaVault will automatically verify your payment on the blockchain:
+    
+    - ⏱️ **Verification time**: Usually 1-5 minutes
+    - ✅ **Automatic**: No manual approval needed
+    - 🔍 **Transparent**: Track on [BscScan](https://bscscan.com/)
+
+    Once verified, your order status will change to **Paid** and the model will be available for deployment.
+  </Step>
+</Steps>
+
+# Troubleshooting
+
+### Payment Not Confirmed
+
+**Issue**: Payment sent but order still shows as unpaid.
+
+**Solutions**:
+1. Wait 5-10 minutes for blockchain confirmation
+2. Verify you sent to the correct address
+3. Check you used BSC network (not other networks)
+4. Ensure you sent the exact amount
+5. Contact support if issue persists
+
+### Wrong Network Used
+
+**Issue**: Sent USDT on wrong network (e.g., Ethereum instead of BSC).
+
+**Solution**: Unfortunately, funds sent to wrong network cannot be recovered. Always double-check the network before sending.
+
+### Insufficient Amount
+
+**Issue**: Sent less than the order amount.
+
+**Solution**: Send an additional transaction for the remaining amount, then submit both transaction IDs to support.
+
+### Transaction Stuck
+
+**Issue**: Transaction pending for a long time.
+
+**Solutions**:
+1. Check blockchain explorer (BscScan) for transaction status
+2. If pending, wait for network confirmation (can take up to 30 minutes during high congestion)
+3. If failed, try sending again
+4. Contact your exchange support if funds were deducted but transaction failed
+
+# Payment Security
+
+### Best Practices
+
+- ✅ Always verify the payment address before sending
+- ✅ Send a small test transaction first for large amounts
+- ✅ Use two-factor authentication (2FA) on your exchange
+- ✅ Keep transaction IDs for your records
+- ✅ Only use official KoalaVault website
+
+### What KoalaVault Does NOT Do
+
+- ❌ Never asks for your private keys
+- ❌ Never asks for your exchange passwords
+- ❌ Never initiates withdrawals from your wallet
+- ❌ Never requests payment to personal accounts
+
+<Warning>
+**Beware of Scams**: Only use payment addresses shown on the official KoalaVault website. Never send funds to addresses received via email, social media, or messaging apps.
+</Warning>
+
+
