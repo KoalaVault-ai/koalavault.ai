@@ -22,13 +22,13 @@ pip install -U koava
 ## With Hugging Face CLI Support (Recommended)
 
 ```bash
-pip install -Ukoava[huggingface]
+pip install -U "koava[huggingface]"
 ```
 
 This includes the Hugging Face CLI for easier model downloading and management.
 
 <Note>
-**Required for `push` command**: The `koava push` command requires Hugging Face CLI support. Install with `[huggingface]` to use the complete workflow.
+  **`Required for push command`**: The `koava push` command requires Hugging Face CLI support. Install with `[huggingface]` to use the complete workflow.
 </Note>
 
 ## Verify Installation
@@ -58,7 +58,6 @@ koava status
 
 # 5. Push your model (Complete workflow)
 koava push ./my-model --name "my-encrypted-model" --description "My awesome AI model"
-
 ```
 
 ## For Advanced Users
@@ -89,7 +88,6 @@ hf upload <your-hf-username>/my-encrypted-model ./my-model --repo-type model --e
 
 # Restore from backup (if needed)
 koava restore ./my-model
-
 ```
 
 ### Advanced Operations
@@ -100,8 +98,6 @@ For advanced operations and detailed command options, see the individual command
 - [koava upload](/koava/upload) - Custom upload configurations and options
 - [koava config](/koava/config) - Configuration management and settings
 
-
-
 # Commands
 
 ## Authentication & Configuration
@@ -110,15 +106,12 @@ For advanced operations and detailed command options, see the individual command
   <Card title="login" icon="key" href="/koava/login">
     Authenticate with KoalaVault API key
   </Card>
-  
   <Card title="logout" icon="right-from-bracket" href="/koava/logout">
     Clear stored credentials
   </Card>
-  
   <Card title="status" icon="circle-info" href="/koava/status">
     Check authentication status and Hugging Face CLI status
   </Card>
-  
   <Card title="config" icon="gear" href="/koava/config">
     Manage configuration settings and CLI paths
   </Card>
@@ -130,15 +123,12 @@ For advanced operations and detailed command options, see the individual command
   <Card title="push" icon="upload" href="/koava/push">
     Complete workflow: create, encrypt, upload metadata, and publish to Hugging Face
   </Card>
-  
   <Card title="encrypt" icon="lock" href="/koava/encrypt">
     Convert safetensors files to encrypted cryptotensors format
   </Card>
-  
   <Card title="upload" icon="cloud-arrow-up" href="/koava/upload">
     Upload encrypted model metadata to KoalaVault
   </Card>
-  
   <Card title="restore" icon="clock-rotate-left" href="/koava/restore">
     Restore original files from automatic backup after encryption
   </Card>
@@ -150,11 +140,9 @@ For advanced operations and detailed command options, see the individual command
   <Card title="create" icon="plus" href="/koava/create">
     Register a new model on KoalaVault
   </Card>
-  
   <Card title="list" icon="list" href="/koava/list">
     Display all files associated with a model on KoalaVault
   </Card>
-  
   <Card title="remove" icon="trash" href="/koava/remove">
     Permanently delete all files associated with a model from KoalaVault
   </Card>
@@ -163,6 +151,3 @@ For advanced operations and detailed command options, see the individual command
 # Support
 
 - **Issues**: Report bugs or request features on [GitHub](https://github.com/koalavault-ai/koalavault.ai/issues)
-
-
-

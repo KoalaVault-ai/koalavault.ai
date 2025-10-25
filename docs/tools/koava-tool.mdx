@@ -8,13 +8,15 @@ description: "Complete guide for using the koava command-line tool for model man
 ## Installation
 
 **Basic installation:**
+
 ```bash
 pip install koava
 ```
 
 **With Hugging Face CLI support (recommended for model downloading):**
+
 ```bash
-pip install koava[huggingface]
+pip install -U "koava[huggingface]"
 ```
 
 ### Verify Installation
@@ -29,12 +31,14 @@ koava --help
 Authenticate with your KoalaVault API key.
 
 **Usage:**
+
 ```bash
 koava login
 # Enter your KoalaVault API key when prompted
 ```
 
 **Description:**
+
 - Authenticates with your KoalaVault API key
 - Required before most operations
 
@@ -43,11 +47,13 @@ koava login
 Clear stored authentication credentials.
 
 **Usage:**
+
 ```bash
 koava logout
 ```
 
 **Description:**
+
 - Clear stored authentication credentials
 - Use when switching accounts or for security
 
@@ -56,11 +62,13 @@ koava logout
 Show authentication status, server connection, and configuration.
 
 **Usage:**
+
 ```bash
 koava status
 ```
 
 **Description:**
+
 - Check authentication status
 - Display server connection information
 - Show current configuration
@@ -71,6 +79,7 @@ koava status
 Configure server endpoint, timeout, and other settings.
 
 **Usage:**
+
 ```bash
 koava config show                    # Show current configuration
 koava config setup                   # Interactive configuration setup wizard
@@ -82,6 +91,7 @@ koava config reset                   # Reset all configuration to defaults
 ```
 
 **Examples:**
+
 ```bash
 koava config set-endpoint https://api.koalavault.ai
 koava config set-timeout 60
@@ -94,14 +104,17 @@ koava config set-huggingface-cli auto
 Create a new model on the KoalaVault.
 
 **Usage:**
+
 ```bash
 koava create <MODEL_NAME> [--description <DESCRIPTION>]
 ```
 
 **Options:**
+
 - `--description, -d`: Optional model description
 
 **Examples:**
+
 ```bash
 koava create my-model
 koava create my-model --description "My awesome AI model"
@@ -112,11 +125,13 @@ koava create my-model --description "My awesome AI model"
 Encrypt safetensors files to secure KoalaVault format (creates automatic backup).
 
 **Usage:**
+
 ```bash
 koava encrypt <MODEL_PATH> [OPTIONS]
 ```
 
 **Options:**
+
 - `--name, -n <NAME>`: Model name for encryption key (defaults to directory name)
 - `--output, -o <PATH>`: Output directory for encrypted files (default: encrypt in-place)
 - `--no-backup`: Skip automatic backup creation (NOT recommended)
@@ -126,6 +141,7 @@ koava encrypt <MODEL_PATH> [OPTIONS]
 - `--force`: Force encryption even if backup directory exists
 
 **Examples:**
+
 ```bash
 koava encrypt ./my-model
 koava encrypt ./my-model --name "my-encrypted-model"
@@ -140,14 +156,17 @@ koava encrypt ./my-model --dry-run
 Restore original files from local backup (undoes encryption).
 
 **Usage:**
+
 ```bash
 koava restore <MODEL_PATH> [OPTIONS]
 ```
 
 **Options:**
+
 - `--force, -f`: Restore without confirmation prompt
 
 **Examples:**
+
 ```bash
 koava restore ./my-model
 koava restore ./my-model --force
@@ -158,15 +177,18 @@ koava restore ./my-model --force
 Upload encrypted model to KoalaVault.
 
 **Usage:**
+
 ```bash
 koava upload <MODEL_PATH> [OPTIONS]
 ```
 
 **Options:**
+
 - `--name, -n <NAME>`: Custom name for the model on server (default: directory name)
 - `--force, -f`: Overwrite existing model on server without confirmation
 
 **Examples:**
+
 ```bash
 koava upload ./my-model
 koava upload ./my-model --name "my-server-model"
@@ -178,14 +200,17 @@ koava upload ./my-model --force
 List files for a model stored on the server.
 
 **Usage:**
+
 ```bash
 koava list <MODEL_IDENTIFIER>
 ```
 
 **Parameters:**
+
 - `MODEL_IDENTIFIER`: Model identifier in format 'username/modelname' or 'modelname' (default: current user)
 
 **Examples:**
+
 ```bash
 koava list my-model
 koava list username/my-model
@@ -196,17 +221,21 @@ koava list username/my-model
 Delete model files from the server.
 
 **Usage:**
+
 ```bash
 koava remove <MODEL_IDENTIFIER> [OPTIONS]
 ```
 
 **Options:**
+
 - `--force, -f`: Delete without confirmation prompt
 
 **Parameters:**
+
 - `MODEL_IDENTIFIER`: Model identifier in format 'username/modelname' or 'modelname' (default: current user)
 
 **Examples:**
+
 ```bash
 koava remove my-model
 koava remove username/my-model --force
@@ -217,16 +246,19 @@ koava remove username/my-model --force
 Push model: create model, encrypt, then push to KoalaVault and Hugging Face.
 
 **Usage:**
+
 ```bash
 koava push <MODEL_PATH> [OPTIONS]
 ```
 
 **Options:**
+
 - `--name, -n <NAME>`: Model name to create on server (defaults to directory name)
 - `--description, -d <DESCRIPTION>`: Optional model description for creation
 - `--force`: Force encryption (overwrite backup) and push (overwrite remote)
 
 **Examples:**
+
 ```bash
 koava push ./my-model
 koava push ./my-model --name "my-model" --description "My awesome model"
@@ -293,17 +325,19 @@ koava push ./my-model --name "my-model" --description "My awesome model"
 ## Configuration
 
 ### Timeout Settings
+
 ```bash
 koava config set-timeout 60
 ```
 
 ### Verbose Logging
+
 ```bash
 koava config set-verbose true
 ```
 
 ### Hugging Face CLI Path
+
 ```bash
 koava config set-huggingface-cli auto
 ```
-
