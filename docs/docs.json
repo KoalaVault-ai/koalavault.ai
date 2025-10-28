@@ -5,8 +5,14 @@
   "description": "Secure marketplace for AI models with blockchain-based payments. Model creators can monetize their work while buyers securely deploy and run encrypted models.",
   "colors": {
     "primary": "#2563eb",
-    "light": "#3b82f6",
-    "dark": "#1d4ed8"
+    "light": "#0284c7",
+    "dark": "#0369a1"
+  },
+  "background": {
+    "color": {
+      "light": "#f8fafc",
+      "dark": "#111827"
+    }
   },
   "logo": {
     "light": "/logo/light.svg",
