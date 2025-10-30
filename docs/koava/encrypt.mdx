@@ -21,7 +21,9 @@ koava encrypt -h
 
 # Description
 
-The `encrypt` command converts standard `safetensors` files to KoalaVault's encrypted format (i.e, cryptotensors). See [CryptoTensors File Format](/security/cryptotensors) for detailed information about the encrypted format.
+The `encrypt` command:
+- converts standard `safetensors` files to `cryptotensors` format (i.e, KoalaVault's encrypted format). See [CryptoTensors File Format](/security/cryptotensors) for detailed information about the encrypted format.
+- inserts compliance block into `README.md` and adds `LICENSE.KOALAVAULT` to clearly state the model is encrypted and license-gated via KoalaVault. See [Hugging Face Compliance](/koava/huggingface-compliance) for more details.
 
 <Note>
 **Important**: After encryption, you must create a model on Hugging Face, upload the complete encrypted model files, and then update the KoalaVault model page with the Hugging Face URL. You can use the [`koava push`](/koava/push) command to do this complete workflow in one step.
@@ -38,6 +40,21 @@ Before running `encrypt`, you must ensure that a model has been created on Koala
 ## Backup Process
 
 When encrypting in-place (without specifying `--output`), the `encrypt` command automatically creates a backup of your original files before encryption. The backup is stored in a `.backup` directory within your model folder, ensuring your original files are preserved in case you need to restore them later. 
+
+## README & License Handling
+
+This section explains how `encrypt` updates documentation to ensure compliance while preserving your originals.
+
+- README
+  - Duplicate-safe insertion: the tool uses an invisible marker to ensure the compliance block is inserted at most once.
+  - In-place (default): inserts a short compliance block into `<MODEL_PATH>/README.md` (after the first title). If no README exists, a minimal README is created.
+  - With `--output`: the source README is never modified. A `README.md` is written to the output directory: if a source README exists, the block is inserted into that content; otherwise, a minimal README is created in the output.
+  - Restore behavior: if no README backup is present but the current README contains the marker, `koava restore` removes the tool-inserted README (in in-place scenarios).
+
+- License
+  - The original `LICENSE` is never modified.
+  - A parallel `LICENSE.KOALAVAULT` is created alongside the encrypted model files to clarify redistribution and execution rights for encrypted artifacts.
+  - `koava restore` removes `LICENSE.KOALAVAULT`.
 
 # Examples
 
@@ -74,10 +91,21 @@ Directory containing safetensors files to encrypt (required).
 ## Options
 
 ### --name, -n
-Model name for encryption key retrieval (defaults to directory name), must match the model name on the KoalaVault.
+Model name for encryption key retrieval, must match the model name on KoalaVault.
+
+Default resolution order when not provided:
+- If `--output/-o` is specified: use the basename of the output directory
+- Otherwise: use the basename of `<MODEL_PATH>`
 
 ```bash
+# Explicitly set name
 koava encrypt ./my-model --name "llama-7b-chat"
+
+# Defaults to output directory basename (my-aws-model)
+koava encrypt ./qwen3-0.6b --output ./my-aws-model
+
+# Defaults to model path basename (my-model)
+koava encrypt ./my-model
 ```
 
 ### --output, -o
@@ -155,3 +183,7 @@ See [koava restore](/koava/restore) for details.
 - [koava restore](/koava/restore) - Restore original files from backup
 - [koava upload](/koava/upload) - Upload encrypted model to KoalaVault
 - [koava push](/koava/push) - Complete workflow (create + encrypt + upload)
+
+# See also
+
+- [Hugging Face Compliance](/koava/huggingface-compliance)

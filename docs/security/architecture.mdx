@@ -3,314 +3,155 @@ title: "Security Architecture"
 description: "Technical overview of KoalaVault's multi-layer security system for encrypted AI model deployment"
 ---
 
-<Note>
-KoalaVault implements a defense-in-depth security architecture with zero-trust principles. The system provides cryptographic protection for AI models through multi-layer authentication, runtime environment verification, and continuous security monitoring.
-</Note>
+<Warning>
+This document describes KoalaVault’s security architecture and a reference implementation intended for evaluation and testing. KoalaVault is not a production security guarantee. Do not rely on KoalaVault as your sole protection mechanism in high‑risk or regulated environments.
+</Warning>
 
-# Security Architecture
+## Layer 1: Secure File Format for Proprietary Models
 
-KoalaVault's security architecture consists of two primary security layers that work together to protect encrypted AI models during deployment and runtime execution.
+At its foundation, KoalaVault relies on **CryptoTensors**, a secure extension of the open-source Safetensors format designed for encrypted model storage and controlled access.  
 
-## Architecture Overview
+Instead of storing raw tensor data directly, CryptoTensors wraps each tensor in a cryptographic envelope—its bytes are encrypted and access is governed by embedded policy metadata.  
 
-The security system operates on zero-trust principles where every component, request, and environment must be explicitly verified before gaining access to encrypted model data.
+This approach preserves the performance and compatibility of Safetensors while ensuring that proprietary model weights remain confidential and verifiable throughout their lifecycle.
 
-```mermaid
-graph TB
-    subgraph "Layer 1: Secure Communication & Access Control"
-        A[User/Application] --> B[API Key Authentication]
-        B --> C[Environment Verification]
-        C --> D[Challenge-Response Protocol]
-        D --> E[Encrypted Key Exchange]
-        E --> F[Access Control Validation]
-    end
+- **Header/body separation:** The header stays plaintext, containing tensor names, shapes, and dtypes for compatibility, while the tensor payloads are encrypted.
+- **Per-tensor encryption:** Each encrypted tensor uses a unique Data Encryption Key (DEK) and initialization vector (IV), typically under AES-GCM; every DEK is wrapped by a model-specific master key.
+- **Integrity and compatibility:** A digital signature protects the header; AEAD ensures ciphertext integrity; the mmap-friendly layout preserves seamless loading with Safetensors tooling.
+- **Distribution-ready design:** Encrypted models can be safely shared or published, while master keys are released only to verified runtimes through the KoalaVault Server.
 
-    subgraph "Layer 2: Runtime Environment Protection"
-        G[Container Security Check] --> H[Framework Integrity Scan]
-        H --> I[Execution Environment Isolation]
-        I --> J[Continuous Monitoring]
-        J --> K[Automated Response]
-    end
+By integrating CryptoTensors at this layer, KoalaVault ensures that every model is both **securely locked** and **natively interoperable**—confidential by default, yet fully usable within existing LLM inference workflows.
 
-    F --> G
-    K --> L[Secure Model Execution]
-```
+For more details on CryptoTensors format, see our [CryptoTensors](/security/cryptotensors) documentation.
 
-## Layer 1: Secure Communication and Access Control
+## Layer 2: User-Isolated Key Management
 
-This layer handles authentication, authorization, and secure key distribution between clients and the KoalaVault server.
+While CryptoTensors protects the model file itself through encryption, Layer 2 defines **who** can decrypt **which** model by introducing user-isolated key domains.  
 
-### Authentication System
-
-**API Key Management**
-- Each user receives a unique API key in the format `sk-{random_string}`
-- Keys are cryptographically generated with 256 bits of entropy
-- Server validates API keys against user permissions and subscription status
-- Failed authentication attempts are rate-limited and logged
-
-**JWT Token System**
-- Server issues JSON Web Tokens after successful API key authentication
-- Tokens contain user ID, subscription information, and expiration timestamps
-- Separate token types for different access scopes (user, admin, attestation)
-- Tokens expire automatically to limit exposure window
-
-### Key Exchange Protocol
-
-The server distributes decryption keys through a secure challenge-response protocol that prevents replay attacks and ensures keys are only delivered to verified environments.
+KoalaVault separates producers (model creators) and subscribers (authorized users) at the cryptographic level so that no key, signature, or header can be reused across roles or tenants. This separation can reduce the risk of key leakage, and limit the impact of a key compromise to a single user or model.
 
 ```mermaid
 sequenceDiagram
-    participant C as Container
-    participant KV as KoalaVault Server
-    participant DB as Secure Database
+    autonumber
+    participant P as Producer (Seller)
+    participant S as KoalaVault
+    participant B as Subscriber (Buyer)
 
-    C->>KV: 1. Request Access (API Key + Model ID)
-    KV->>KV: 2. Validate API Key & Permissions
-    KV->>C: 3. Send Challenge Nonce + Public Key
-    C->>C: 4. Generate Environment Proof
-    C->>KV: 5. Send Encrypted Response (Framework Hash + Nonce)
-    KV->>KV: 6. Verify Environment & Challenge
-    KV->>DB: 7. Retrieve Wrapped Model Keys
-    KV->>C: 8. Send Encrypted Keys + Attestation Token
-    C->>C: 9. Decrypt Keys & Begin Model Loading
+    Note over P,S: User Registration
+    P->>S: Register account
+    S->>S: Generate producer verification/sign key
+    S-->>P: Verification key registered
 
-    Note over C,KV: All communications use TLS 1.3
-    Note over KV,DB: Keys are never stored in plaintext
+    Note over B,S: Subscriber registration
+    B->>S: Register account
+    S->>S: Generate subscriber verification/sign key
+    S-->>B: Verification key registered
+
+    Note over P,S: Model creation and upload (per model)
+    P->>S: Create model
+    S->>S: Generate producer master key (per model)
+
+    Note over P,S: Producer prepares and uploads headers
+    S->>P: Provide producer master key + sign key
+    P->>P: Encrypt header(s) with producer master key
+    P->>P: Sign header(s) with producer sign key
+    P->>S: Upload encrypted + signed header(s)
+
+    Note over B,S: Subscription creation (per model)
+    B->>S: Create subscription
+    S->>S: Generate buyer master key (per model)
+    S->>S: Generate buy-specific headers
+    S-->>B: Buyer-specific headers ready
 ```
 
-**Protocol Steps:**
-1. **Access Request**: Client sends API key and model identifier
-2. **Authentication**: Server validates credentials and subscription status
-3. **Challenge Generation**: Server creates cryptographic challenge with RSA key pair
-4. **Environment Measurement**: Client computes hash of runtime environment
-5. **Response Submission**: Client encrypts environment proof with server's public key
-6. **Verification**: Server validates environment against approved baselines
-7. **Key Delivery**: Server provides wrapped encryption keys if verification passes
-8. **Decryption**: Client unwraps keys and begins secure model loading
+- **Key Scoping:** The producer and subscriber master keys are distinct. Each key is scoped per model, that is producer holds one master key per model, and subscriber receives a unique per-model key created by the KoalaVault Server at subscription time.
 
-### Access Control Framework
+- **Subscriber Key Provisioning:** Upon subscription creation, the KoalaVault Server generates a subscriber-specific master key scoped to that model, and immediately creates/updates the personalized headers for that subscriber, which is derived from the producer headers and the subscriber key.
 
-**Subscription Verification**
-- Each model access requires valid subscription for the specific model
-- Server checks subscription status, usage quotas, and access permissions
-- Geographic and temporal restrictions can be enforced per subscription
-- Usage tracking enables billing and compliance reporting
 
-**Key Wrapping Architecture**
-- Model encryption keys are wrapped with server storage keys
-- Multiple encryption layers protect keys during storage and transit
-- Key derivation uses HKDF with model-specific context information
-- Automatic key rotation supported without model re-encryption
+Together, Layer 2’s per-user, per-model isolation ensures that only the rightful subscriber can proceed to Layer 3 to attest, retrieve keys, and run the model.
 
-## Layer 2: Runtime Environment Protection
 
-This layer ensures the execution environment remains secure throughout the model lifecycle.
+## Layer 3: Deployment Authentication & Authorization
 
-### Container Security Verification
-
-**Privilege Validation**
-- Verifies containers run with minimal required Linux capabilities
-- Checks for dangerous capabilities that could compromise security
-- Monitors filesystem permissions and mount configurations
-- Ensures containers cannot escalate privileges during execution
-
-**Filesystem Protection**
-- Validates that system paths are mounted read-only
-- Checks that writable paths use memory-only filesystems (tmpfs)
-- Verifies no unauthorized writable mounts exist
-- Performs periodic write-protection tests on critical paths
-
-### Framework Integrity Assurance
-
-**Code Fingerprinting**
-- Computes SHA-256 hashes of all files in the AI framework
-- Creates deterministic measurement of the entire software stack
-- Compares runtime environment against known-good baselines
-- Detects unauthorized modifications to framework code
-
-**Supply Chain Verification**
-- Validates framework packages match official releases
-- Checks cryptographic signatures on framework binaries
-- Monitors for unauthorized Python modules or native libraries
-- Prevents execution if untrusted code is detected
-
-### Runtime Security Monitoring
-
-The system continuously monitors the execution environment for security violations.
+Building on Layer 2’s per-user, per-model isolation, Layer 3 verifies the runtime and the model state before any key release: the deployment runtime (i.e., the enhanced vLLM container) must attest its environment, prove file integrity, and only then receive the minimal key material to decrypt and run. The process has three compact stages:
 
 ```mermaid
-graph LR
-    subgraph "Continuous Security Monitoring"
-        A[Container Runtime] --> B{Security Check Every 30s}
-        B --> C[Framework Integrity]
-        B --> D[Privilege Verification]
-        B --> E[Network Monitoring]
-        B --> F[Resource Tracking]
+sequenceDiagram
+    autonumber
+    participant C as Deployment Runtime (vLLM Container)
+    participant S as KoalaVault
 
-        C --> G{Violation Detected?}
-        D --> G
-        E --> G
-        F --> G
+    Note over C,S: Deploy Phase
 
-        G -->|No| H[Continue Operation]
-        G -->|Yes| I[Immediate Alert]
+    C->>S: Authenticate with API key
+    S->>S: Validate API key and identity
+    S->>S: Check active subscription for target model
+    S-->>C: Access granted (authorized to proceed)
 
-        H --> B
-        I --> J[Revoke Keys]
-        I --> K[Isolate Container]
-        I --> L[Log Incident]
+    Note over C,S: Attestation Phase
+    C->>S: Request Challenge
+    S-->>C: Challenge + Short-lived Public Key
+    C->>C: Collect Measurements inside Container (version, vLLM code measurement)
+    C->>S: Submit Encrypted Measurements
+    S->>S: Verify Measurements Integrity and Freshness
+    S-->>C: Attestation Ticket
 
-        J --> M[Secure Shutdown]
-        K --> M
-        L --> M
+    Note over C,S: Key Retrieval Phase
+    C->>C: Hash Local Model File Headers
+    C->>S: Send Header Hashes + Ticket
+    S->>S: Validate Auth Context and Ticket
+    S->>S: Compare Header Hashes vs Buyer-Specific Records
+
+    alt Any Header Mismatch
+        S-->>C: Download Buyer-Specific Headers
+        C->>C: Replace Local Headers with Buyer-Specific Headers
+    else All Headers Match
+        S-->>C: Buyer-Specific Master Key + Verification Key
+        C->>C: Decrypt and Run Model
     end
 ```
 
-**Monitoring Components:**
-- **Container State**: Linux capabilities, cgroups, and namespace configuration
-- **Framework Integrity**: File modification detection and hash verification
-- **Network Activity**: Unexpected network connections or data exfiltration
-- **Resource Usage**: Memory, CPU, and disk usage patterns
+1. **Attestation challenge and measurements:** the deployment runtime requests a fresh challenge, then submits encrypted measurements from the secure runtime (including the challenge). If valid, the server issues a short‑lived ticket bound to the user and model (and, for subscribers, to the subscription).
 
-**Response Actions:**
-- **Key Revocation**: Immediate invalidation of all decryption keys
-- **Container Isolation**: Network and filesystem access restrictions
-- **Audit Logging**: Detailed forensic information for security analysis
-- **Graceful Shutdown**: Secure termination of model execution
+<Note>
+The KoalaVault client only read and scan the filesystem of the container, and does not access the host filesystem.
+</Note>
 
-## Security Properties
+2. **File header integrity check:** the deployment runtime computes hashes of local model file headers and sends them with the ticket. The server validates the user context, ticket authenticity/freshness, presence of required keys, and compares per‑file header hashes against personalized records.
 
-### Cryptographic Guarantees
+3. **Decision and next step:** if all headers match, the server responds with the buyer-specific master key and verification key. If any header does not match, the server responds with the headers that need synchronization; the deployment runtime updates them and repeats the integrity check.
 
-**Encryption Standards**
-- AES-256-GCM for symmetric encryption of model weights
-- RSA-4096 for asymmetric key exchange during challenge-response
-- Ed25519 for digital signatures on file headers
-- HKDF-SHA256 for key derivation and management
+Together, these checks ensure that keys are released only to an authenticated subscriber running the expected software against the correct, buyer-specific headers—after which ongoing safeguards are handled by Layer 4.
 
-**Key Management**
-- Keys exist only in memory, never persisted to disk
-- Automatic key clearing on process termination
-- Secure random number generation for all cryptographic operations
-- Forward secrecy through ephemeral key exchange
+## Layer 4: Runtime Integrity Protection
 
-### Security Boundaries
+Even with encryption and policy enforcement in place, the security of a deployed model ultimately depends on the integrity of its runtime environment.  
+Layer 4 strengthens this final boundary by ensuring that the execution context itself is verifiable, read-only, and sealed against tampering.  
+It combines container-level hardening with in-container integrity guards so that decryption keys are usable **only** inside a trusted, attested runtime whose state matches the expected configuration.
 
-**Trust Assumptions**
-- KoalaVault server infrastructure is trusted
-- TLS certificate infrastructure is trusted
-- Client execution environment can be compromised
-- Model files can be copied but remain encrypted
+- **Container Hardening**
+  - The container runs with a **read-only root filesystem**, preventing writes to image layers and blocking modification of binaries or configuration files.  
+  - **Linux capabilities** are aggressively minimized to reduce kernel-level attack surface.  
+  - Writable areas are strictly controlled using ephemeral **tmpfs mounts** to provide scratch space without persisting data to disk.  
+  - **Mounts are constrained** to the model directory, ensuring the loader can only read files under `/models` inside the container.  
+  - The runtime explicitly forbids privileged mode, host filesystem access, or arbitrary device mounts beyond what is required for inference (for example, GPUs).
 
-**Attack Resistance**
-- Model weights cannot be extracted without valid keys
-- Keys cannot be obtained without verified environment
-- Environment cannot be spoofed due to cryptographic measurement
-- Network communications protected against eavesdropping and tampering
+- **In-Container Runtime Guard**
+  - The guard verifies that root filesystem layers are mounted read-only by inspecting `/proc/self/mountinfo`; any unexpected `rw` mount triggers a fail-closed response.  
+  - It enforces a strict **mount whitelist**, allowing only `/models` binds and `/tmp` tmpfs; additional mounts, especially those with execute or host access, are denied.  
+  - **Writable-path probes** periodically test protected directories such as `/usr` and image layer paths to confirm that write attempts are blocked.  
+  - The guard audits process **capabilities and tracing settings**, rejecting unexpected privileges, `ptrace` or eBPF attachment, or namespace escapes that could alter memory or code.  
+  - It detects and blocks **dynamic code injection** by checking `LD_PRELOAD`, `LD_LIBRARY_PATH`, and inspecting `/proc/self/maps` for unapproved shared objects under writable mounts.
 
-## Deployment Security
+Once activated, this protection layer enforces strict operational guarantees: decryption keys function only within a verified, read-only container whose mounts and measurements match the attested baseline. Any attempt to modify binaries, alter vLLM loader code, or elevate privileges immediately invalidates key access and terminates the session. Decrypted tensors reside solely in process memory, and all attempts to persist plaintext to disk or external mounts are blocked by the read-only filesystem and guard checks. Every security decision and denial is logged to provide auditable proof of runtime integrity.
 
-### Container Configuration
+In essence, Layer 4 ensures that even after keys are securely released, the runtime remains a **sealed execution capsule**—immutable, verifiable, and self-protecting. Any deviation from the attested configuration results in instant revocation of decryption privileges, completing KoalaVault’s end-to-end security chain from encrypted storage to verified execution.
 
-**Required Security Flags**
-- `--read-only`: Filesystem mounted read-only except specified paths
-- `--cap-drop ALL`: Remove all Linux capabilities by default
-- `--cap-add DAC_OVERRIDE`: Required for GPU device access
-- `--tmpfs /tmp`: Memory-only filesystem for temporary data
+For more details on deployment setup, see our [Docker Run Guide](/deploy/docker-run-guide).
 
-**Mount Security**
-- Host directories mounted read-only contain only encrypted data
-- Writable mounts use tmpfs to prevent data persistence
-- No privileged mounts or device access beyond GPU
-- Container cannot modify host filesystem
+---
+## Summary
 
-### Network Security
-
-**Communication Channels**
-- All API communications use TLS 1.3 with certificate pinning
-- Perfect forward secrecy for all key exchange operations
-- No plaintext transmission of sensitive data
-- Network isolation prevents unauthorized data exfiltration
-
-## Monitoring and Alerting
-
-### Security Events
-
-**Critical Violations** (immediate response):
-- Trust-remote-code detection in AI framework
-- Unauthorized privilege escalation attempts
-- Filesystem write attempts to protected paths
-- Framework integrity verification failures
-
-**Warning Events** (logged for analysis):
-- Authentication retry attempts
-- Network connectivity issues during key exchange
-- Container resource usage anomalies
-- Subscription quota approaching limits
-
-### Audit Capabilities
-
-**Logging Requirements**
-- All authentication attempts with timestamps and IP addresses
-- Complete key exchange and access control decisions
-- Security violations with detailed context information
-- Model access patterns for usage analysis
-
-**Compliance Support**
-- Comprehensive audit trails for regulatory requirements
-- Role-based access control integration
-- Data retention policies for security logs
-- Automated compliance reporting capabilities
-
-## Limitations and Considerations
-
-### Current Scope
-
-**Protected Assets**
-- Model weights and parameters stored in safetensors format
-- Metadata and configuration information
-- Access patterns and usage analytics
-
-**Security Boundaries**
-- Protection limited to model files, not training data
-- Runtime security depends on container isolation
-- Network security relies on TLS certificate infrastructure
-- Hardware security modules not currently integrated
-
-### Future Enhancements
-
-**Hardware Security**
-- Integration with TPM and HSM for key storage
-- Support for Intel SGX and ARM TrustZone
-- Hardware-based attestation capabilities
-
-**Advanced Cryptography**
-- Post-quantum cryptographic algorithms
-- Homomorphic encryption for inference
-- Zero-knowledge proofs for access control
-
-## Integration Guidelines
-
-### API Integration
-
-**Authentication Flow**
-1. Obtain API key from KoalaVault dashboard
-2. Configure environment variables for model access
-3. Ensure container security flags are properly set
-4. Verify framework integrity before model loading
-
-**Error Handling**
-- Authentication failures return generic error messages
-- Network issues should trigger automatic retry with exponential backoff
-- Security violations require manual intervention
-- Key corruption triggers automatic re-fetch from server
-
-### Operational Procedures
-
-**Security Best Practices**
-- Regular rotation of API keys and access tokens
-- Monitoring of security logs for anomalous activity
-- Periodic review of access control policies
-- Testing of incident response procedures
-
-This security architecture provides comprehensive protection for AI models while maintaining operational flexibility and performance requirements.
+KoalaVault’s layered design provides a continuum of protection—from encrypted storage formats to runtime enforcement.  
+Each layer builds on the previous one to ensure that model confidentiality, integrity, and authenticity persist across the entire lifecycle of deployment and use.

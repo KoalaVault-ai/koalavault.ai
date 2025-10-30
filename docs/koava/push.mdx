@@ -19,9 +19,9 @@ koava push -h
 The `push` command is the recommended way to publish models to KoalaVault. It combines four steps into one:
 
 1. **Create**: Create the model on KoalaVault
-2. **Encrypt**: Convert safetensors files to encrypted format
+2. **Encrypt**: Convert safetensors files to encrypted format, insert compliance block into `README.md` and add `LICENSE.KOALAVAULT` (see [Hugging Face Compliance](/koava/huggingface-compliance) for more details)
 3. **Upload**: Upload metadata to KoalaVault
-4. **Publish**: Create model on Hugging Face and upload complete encrypted files, then update KoalaVault with Hugging Face URL and README
+4. **Publish**: Create model on Hugging Face (*private repository by default*) and upload complete encrypted files, then update KoalaVault with Hugging Face URL and README
 
 This is the easiest way for most users to publish their models.
 
@@ -72,6 +72,27 @@ Force encryption (overwrite backup) and upload (overwrite remote).
 koava push ./my-model --force
 ```
 
+### --public
+
+<Note>
+**[Hugging Face Compliance](/koava/huggingface-compliance)**: By default, the `push` command creates a **private** Hugging Face repository to ensure compliance with platform requirements for encrypted models. You can manually publish the repository on Hugging Face if needed.
+</Note>
+
+Create a public Hugging Face repository instead of private (default: private).
+
+```bash
+koava push ./my-model --public
+```
+
+# Publishing Your Hugging Face Repository after `push`
+
+After using `push`, your model will be available on Hugging Face as a **private** repository. To make it public:
+
+1. Visit your repository on Hugging Face: `https://huggingface.co/your-username/model-name`
+2. Click on **Settings** in the repository menu
+3. Scroll down to **Repository visibility**
+4. Click **Make public** and confirm
+
 
 # Related Commands
 
@@ -79,3 +100,7 @@ koava push ./my-model --force
 - [koava encrypt](/koava/encrypt) - Encrypt only (manual workflow)
 - [koava upload](/koava/upload) - Upload only (manual workflow)
 - [koava restore](/koava/restore) - Restore from backup if needed
+
+### See also
+
+- [Hugging Face Compliance](/koava/huggingface-compliance)

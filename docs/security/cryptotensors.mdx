@@ -1,446 +1,66 @@
 ---
-title: "CryptoTensors: Encrypted Safetensors Format"
-description: "Technical specification for encrypted AI model storage with lazy decryption, transparent key management, and zero-copy performance"
+title: "CryptoTensors"
+description: "This document explains the principles and mechanisms behind CryptoTensors: file format, metadata schema, cryptography, and the end-to-end (de)serialization workflow."
 ---
 
-<Note>
-CryptoTensors extends the safetensors format with encryption, digital signatures, and key management capabilities. The format maintains compatibility with existing safetensors tools while providing cryptographic protection for AI model weights through per-tensor encryption and lazy decryption.
-</Note>
+## Overview
 
-# CryptoTensors Technical Specification
+CryptoTensors is a **file format** that aims to provide strong confidentiality and controlled access for proprietary LLM weights while preserving the usability and efficiency of the Safetensors ecosystem.
 
-CryptoTensors is an encrypted extension of the safetensors format that provides cryptographic protection for AI model weights while maintaining the performance characteristics that make safetensors effective for large model deployment.
+![CryptoTensors File Format](/images/cryptotensors.jpg)
+
+## High-Level Design
+
+**Philosophy:** CryptoTensors chooses to **extend** [Safetensors](https://huggingface.co/docs/safetensors/index) rather than inventing a new format.
+Since Saftenosrs is one of the most popular and widely used tensor serialization formats for LLMs, it is a natural choice to extend and be compatible with it to leverage the existing ecosystem, tools, and frameworks.
+
+
+**Cryptography Design:** 
++ CryptoTensors uses a **header/body split strategy** similar to Safetensors. The header remains plaintext (for tensor names, shapes, dtypes) to retain discovery and loading optimizations; the body holds the encrypted tensor payloads.
++ CryptoTensors uses a **two-level encryption** strategy per tensor:
+  - Per-tensor DEK encryption. Each selected tensor is encrypted with a randomly generated Data Encryption Key (DEK) and a unique IV (e.g., AES-GCM). This ensures ciphertext uniqueness and mitigates IV/key reuse.
+  - DEK wrapping. Each DEK is wrapped (encrypted) under a master key whose release is governed by the embedded policies (via KBS or local keying).
+
++ The **integrity protection** of the model is achieved by a chain of signatures: the authenticity of the header is protected by a digital signature, combined with the two-level encryption strategy and AES-GCM's inherent integrity protection. Overall, CryptoTensors provides the integrity protection for the entire file.
+
++ The file format is **self-contained**, which means that the cryptographic metadata, policy references, and key source descriptors are embedded in the file itself. This allows for automated, policy-compliant decryption via KBS across diverse environments and licensing models.
 
 ## Format Overview
 
-CryptoTensors maintains the basic safetensors structure while adding cryptographic metadata for encryption, signing, and key management:
+CryptoTensors piggybacks on Safetensors’ `__metadata__` to introduce four signed metadata fields:
 
-```
-[8 bytes: header length][header JSON][encrypted tensor data]
-```
+- `__crypto_keys__` — JWK-encoded metadata for encryption and signing keys (e.g., `kid`, `jku`, `x5c`), with URI-style sources: `file://`, `https://`, `kbs://`. Includes `version` for forward compatibility.
+- `__encryption__` — Per-tensor encryption records enabling *partial encryption*. For each encrypted tensor: IV (`iv`), AEAD tag (`tag`), and the **wrapped** data-encryption key (`wrapped_key`) with its own IV/tag (`key_iv`, `key_tag`). Values are Base64-encoded.  
+- `__policy__` — Access-control policies in **Rego** (Open Policy Agent). Split into `local` (validated by the loader against the execution environment) and `remote` (enforced by KBS for key release).
+- `__signature__` — Base64 signature over the entire header; verified by both loader and KBS to prevent tampering and to authenticate origin.
 
-### File Format Compatibility
+For the tensor data, CryptoTensors uses the same format as Safetensors, which is a binary format that is compatible with the existing ecosystem, tools, and frameworks. Since the IVs/tags of encrypted tensors are stored in the header (not inline with tensor bytes), so the **memory layout of encrypted tensors is identical** to unencrypted ones; no offset recomputation is needed. This preserves mmap-friendly loading and compatibility with Safetensors tooling.
 
-- **Backward Compatible**: Standard safetensors parsers can read the basic structure
-- **Forward Compatible**: Version-aware metadata supports future enhancements
-- **Zero-Copy Preservation**: Memory mapping and lazy loading maintained
-- **Framework Agnostic**: Works with PyTorch, TensorFlow, JAX, and other ML frameworks
 
-## Cryptographic Architecture
+## Serialization (Exporting Model) Workflow
 
-CryptoTensors implements a three-layer cryptographic system that balances security, performance, and operational requirements.
+At authoring time, the serializer:
 
-```mermaid
-graph TB
-    subgraph "Cryptographic Architecture"
-        subgraph "Layer 3: Digital Signatures"
-            S1[Ed25519 Signing Key] --> S2[Header Signature]
-            S2 --> S3[Integrity Protection]
-        end
+1. **Collects configuration:** AEAD algorithm (e.g., AES-GCM-256), master key, signature algorithm (e.g., Ed25519), the list of tensors to encrypt, and deployment policies.
+2. **For each selected tensor:** generate a random DEK → encrypt the tensor with DEK → **wrap** the DEK with the master key.
+3. **Prepare metadata:** Assemble `__crypto_keys__`, `__encryption__`, `__policy__`, then build a temporary header and **digitally sign** it; embed the signature in `__signature__`.
+4. **Write tensor data:** Write encrypted tensor bytes as the file body.
 
-        subgraph "Layer 2: Asymmetric Key Wrapping"
-            K1[RSA Public Key] --> K2[Encrypted Master Key]
-            K2 --> K3[Secure Key Distribution]
-        end
+After serialization, the file is safe to distribute (e.g., on public hubs); the master key must be delivered only to authorized parties.
 
-        subgraph "Layer 1: Per-Tensor Encryption"
-            T1[Tensor 1] --> T2[AES-256-GCM DEK1]
-            T3[Tensor 2] --> T4[AES-256-GCM DEK2]
-            T5[Tensor N] --> T6[AES-256-GCM DEKN]
-        end
+## Deserialization (Loading Model) Workflow
 
-        K3 --> T2
-        K3 --> T4
-        K3 --> T6
-        S3 --> K1
-    end
+Given a local file:
 
-    subgraph "Performance Benefits"
-        P1[Fast Symmetric Encryption] --> P2[Granular Access Control]
-        P2 --> P3[Parallel Processing]
-        P3 --> P4[Zero-Copy Performance]
-    end
+1. **Detect encryption:** Parse the header; if `__crypto_keys__` is absent, treat as standard Safetensors. Otherwise, enter the CryptoTensors path.
+2. **Verify header integrity:** Retrieve the signing key from the header’s key sources; reconstruct the header (excluding `__signature__`) and verify the signature.
+3. **Evaluate local policy:** Check the `local` policy against system measurements (e.g., device identifiers, attestation).
+4. **Obtain master key:** Resolve key source metadata; if remote, establish a secure channel to KBS (e.g., [KoalaVault Server](https://www.koalavault.ai)), send the header and measurements; KBS verifies header integrity and `remote` policy before releasing the key.
+5. **Unwrap DEKs & decrypt on demand:** When the runtime first accesses an encrypted tensor: unwrap its DEK using the master key; decrypt the tensor; optionally cache plaintext for subsequent accesses. Lazy decryption pairs with lazy loading so only touched tensors are decrypted.
 
-    T2 --> P1
-    T4 --> P1
-    T6 --> P1
-```
+After deserialization, the model is ready to be used and can be treated as a standard Safetensors model.
 
-### Layer 1: Per-Tensor Symmetric Encryption
+## Compatibility
 
-**Algorithm**: AES-256-GCM (Galois/Counter Mode)
-- **Key Size**: 256 bits (32 bytes)
-- **IV Size**: 96 bits (12 bytes) - randomly generated per tensor
-- **Authentication Tag**: 128 bits (16 bytes)
-- **Key Derivation**: HKDF-SHA256 with tensor name as context
+- CryptoTensors remains structurally compatible with Safetensors (header visible, offsets stable), preserving lazy loading and partial deserialization—critical for large-model inference.
 
-**Benefits**:
-- Fast encryption/decryption suitable for large tensor data
-- Authenticated encryption prevents tampering
-- Independent keys enable granular access control
-- Parallel processing across multiple tensors
-
-### Layer 2: Asymmetric Key Wrapping
-
-**Algorithm**: RSA-OAEP with SHA-256
-- **Key Size**: 2048 or 4096 bits (configurable)
-- **Padding**: OAEP with SHA-256 hash and MGF1
-- **Key Exchange**: Ephemeral RSA keys for each session
-
-**Purpose**:
-- Secure distribution of symmetric keys without pre-shared secrets
-- Enables remote key management and access control
-- Supports key rotation without re-encrypting model data
-
-### Layer 3: Digital Signatures
-
-**Algorithm**: Ed25519 (Edwards-curve Digital Signature Algorithm)
-- **Key Size**: 256 bits (32 bytes)
-- **Signature Size**: 512 bits (64 bytes)
-- **Hash Function**: SHA-512 (built into Ed25519)
-
-**Protection**:
-- Header integrity verification
-- Prevents malicious model modifications
-- Ensures model provenance and authenticity
-- Non-repudiation for model distribution
-
-## Header Structure
-
-The CryptoTensors header extends the standard safetensors JSON format with encryption metadata:
-
-### Standard Safetensors Fields
-
-```json
-{
-  "tensor_name": {
-    "dtype": "F32",
-    "shape": [1024, 768],
-    "data_offsets": [0, 3145728]
-  },
-  "__metadata__": {
-    "model_name": "example-model",
-    "version": "1.0"
-  }
-}
-```
-
-### CryptoTensors Extensions
-
-```json
-{
-  "__encryption__": {
-    "version": "1",
-    "algorithm": "aes256gcm",
-    "tensors": {
-      "tensor_name": {
-        "iv": "base64-encoded-iv",
-        "tag": "base64-encoded-auth-tag"
-      }
-    }
-  },
-  "__crypto_keys__": {
-    "version": "1",
-    "enc": {
-      "kty": "oct",
-      "alg": "A256GCM",
-      "k": "base64-encoded-wrapped-key"
-    },
-    "sign": {
-      "kty": "OKP",
-      "crv": "Ed25519",
-      "x": "base64-encoded-public-key"
-    }
-  },
-  "__signature__": "base64-encoded-header-signature",
-  "__policy__": {
-    "version": "1",
-    "remote_keys": true,
-    "attestation_required": true
-  }
-}
-```
-
-## Lazy Decryption Implementation
-
-CryptoTensors implements lazy decryption to maintain zero-copy performance characteristics while providing cryptographic protection.
-
-### Memory Mapping Strategy
-
-```mermaid
-graph TB
-    subgraph "Traditional Approach"
-        T1[Encrypted File] --> T2[Read Full File]
-        T2 --> T3[Decrypt Everything]
-        T3 --> T4[Copy to RAM]
-        T4 --> T5[Create Tensor Views]
-        T6[Memory Usage: High] --> T7[Startup Time: Slow]
-    end
-
-    subgraph "CryptoTensors Approach"
-        C1[Encrypted File] --> C2[Memory Map File]
-        C2 --> C3[Parse Header Only]
-        C3 --> C4[Create Lazy Tensor Views]
-        C4 --> C5{Tensor Accessed?}
-        C5 -->|Yes| C6[Decrypt Only This Tensor]
-        C5 -->|No| C7[Stay Encrypted]
-        C6 --> C8[Direct Memory Access]
-        C7 --> C8
-        C9[Memory Usage: Minimal] --> C10[Startup Time: Instant]
-    end
-
-    subgraph "Benefits"
-        B1[Zero-Copy Performance]
-        B2[Lazy Decryption]
-        B3[Minimal Memory Footprint]
-        B4[Instant Model Loading]
-    end
-
-    C8 --> B1
-    C6 --> B2
-    C2 --> B3
-    C3 --> B4
-```
-
-### Implementation Details
-
-**Initial Loading**:
-1. Memory map the encrypted file
-2. Parse and verify header signature
-3. Extract encryption metadata without decrypting tensor data
-4. Create tensor view objects with lazy decryption callbacks
-
-**On-Demand Decryption**:
-1. First access to tensor triggers decryption
-2. Derive tensor-specific key from master key
-3. Decrypt tensor data in-place using memory-mapped buffer
-4. Subsequent accesses use decrypted data directly
-
-**Memory Management**:
-- Decrypted tensors remain in memory until process termination
-- Memory usage grows only with accessed tensors
-- Unused tensors remain encrypted and consume minimal memory
-
-## Key Management
-
-CryptoTensors supports multiple key management strategies depending on deployment requirements.
-
-### Embedded Keys (Development/Testing)
-
-Keys are stored directly in the file metadata:
-
-```json
-{
-  "__crypto_keys__": {
-    "enc": {
-      "kty": "oct",
-      "alg": "A256GCM",
-      "k": "base64-encoded-key-data"
-    }
-  }
-}
-```
-
-**Use Case**: Development, testing, non-production environments
-**Security Level**: Low - keys travel with model files
-
-### Remote Key Management (Production)
-
-Keys are retrieved from KoalaVault servers through secure protocols:
-
-```mermaid
-sequenceDiagram
-    participant Container
-    participant KoalaVault
-    participant Environment as Framework Environment
-
-    Container->>Environment: 1. Scan Framework Files
-    Environment->>Container: 2. Return File Hashes
-    Container->>Container: 3. Compute Environment Measurement
-    Container->>KoalaVault: 4. Request Challenge (Model ID)
-    KoalaVault->>KoalaVault: 5. Generate Nonce + RSA Key Pair
-    KoalaVault->>Container: 6. Send Challenge (Nonce + Public Key)
-    Container->>Container: 7. Encrypt (Framework Hash + Nonce)
-    Container->>KoalaVault: 8. Submit Attestation Proof
-    KoalaVault->>KoalaVault: 9. Verify Environment Baseline
-    alt Environment Approved
-        KoalaVault->>Container: 10. Send Wrapped Keys + Attestation Token
-        Container->>Container: 11. Unwrap Keys & Begin Decryption
-    else Environment Rejected
-        KoalaVault->>Container: 10. Access Denied
-    end
-
-    Note over Container,KoalaVault: All communications encrypted with TLS 1.3
-    Note over Container: Keys only exist in memory, never persisted
-```
-
-**Use Case**: Production deployments, commercial model distribution
-**Security Level**: High - keys never stored with model files
-
-### Framework Attestation
-
-Before providing decryption keys, the system verifies the integrity of the AI framework to prevent unauthorized access through modified software.
-
-**Measurement Process**:
-1. **File Discovery**: Scan configured Python package directories
-2. **Hash Computation**: Calculate SHA-256 hash of each framework file
-3. **Baseline Generation**: Create deterministic measurement of software stack
-4. **Server Verification**: Compare measurement against approved baselines
-
-**Protected Paths** (default configuration):
-- `/opt/venv/lib/python*/site-packages` (virtual environment)
-- `/usr/local/lib/python*/site-packages` (system installation)
-- `/usr/lib/python*/dist-packages` (distribution packages)
-
-**Ignored Components**:
-- `__pycache__` directories (bytecode cache)
-- `.git` and `.svn` directories (version control)
-- Log files and temporary data
-
-## Performance Characteristics
-
-### Encryption Overhead
-
-**Symmetric Encryption**: ~1-5% computational overhead for AES-256-GCM
-**Memory Usage**: No additional memory for encrypted tensors
-**I/O Performance**: Identical to standard safetensors for accessed tensors
-**Startup Time**: No impact - only header parsing required
-
-### Lazy Loading Benefits
-
-**Large Model Support**: 70B+ parameter models load instantly
-**Memory Efficiency**: Only used tensors consume decrypted memory
-**Parallel Access**: Multiple tensors can be decrypted simultaneously
-**Cache Friendly**: Frequently accessed tensors remain decrypted
-
-### Scalability Metrics
-
-- **File Size**: ~0.1% overhead for encryption metadata
-- **Network Transfer**: Identical to original safetensors files
-- **Concurrent Access**: Supports multiple readers per file
-- **Key Exchange**: ~100ms additional latency for initial authentication
-
-## Integration Specifications
-
-### API Compatibility
-
-CryptoTensors maintains API compatibility with existing safetensors usage:
-
-```python
-# Standard safetensors
-import safetensors
-tensors = safetensors.load_file("model.safetensors")
-
-# CryptoTensors (identical API)
-tensors = safetensors.load_file("model.cryptotensors")
-```
-
-### Environment Configuration
-
-**Required Environment Variables**:
-- `__KV_INTERNAL_API_KEY__`: KoalaVault API authentication key
-- `__KV_INTERNAL_MODEL_OWNER__`: Model owner username
-- `__KV_INTERNAL_MODEL_NAME__`: Model identifier
-- `__KV_INTERNAL_MODEL_PATH__`: Path to encrypted model files
-
-**Optional Configuration**:
-- `KOALAVAULT_BASE_URL`: Override default API endpoint (debug builds only)
-- `KOALAVAULT_TIMEOUT`: Network timeout for key exchange operations
-- `KOALAVAULT_RETRY_COUNT`: Maximum authentication retry attempts
-
-### Framework Support
-
-**Supported Frameworks**:
-- PyTorch: Full support with zero-copy tensor loading
-- TensorFlow: Compatible through numpy array conversion
-- JAX: Direct integration with jax.numpy arrays
-- Transformers: Automatic detection and initialization
-
-**Platform Compatibility**:
-- Linux: Full support (x86_64, ARM64)
-- macOS: Development support (limited container features)
-- Windows: Basic support (no container security)
-
-## Security Properties
-
-### Threat Model
-
-**Protected Against**:
-- Unauthorized access to model weights without valid keys
-- Model tampering and integrity violations
-- Man-in-the-middle attacks during key exchange
-- Framework modification attacks
-
-**Trust Assumptions**:
-- KoalaVault server infrastructure is trusted
-- TLS certificate authority infrastructure is trusted
-- Container runtime provides isolation (when available)
-- Host operating system kernel is trusted
-
-### Attack Resistance
-
-**Key Security**:
-- Keys never stored persistently on client systems
-- Forward secrecy through ephemeral key exchange
-- Automatic key revocation on security violations
-- Cryptographically secure random number generation
-
-**File Integrity**:
-- Ed25519 signatures prevent header tampering
-- AES-GCM authentication tags prevent data modification
-- Deterministic framework measurement prevents code injection
-- Supply chain verification through package signatures
-
-## Limitations and Considerations
-
-### Current Limitations
-
-**Scope of Protection**:
-- Model weights and parameters only (not training data)
-- Framework integrity verification limited to Python packages
-- No protection against side-channel attacks
-- Memory dumps may contain decrypted model data
-
-**Performance Constraints**:
-- Initial key exchange requires network connectivity
-- Framework measurement adds ~1-2 seconds to startup time
-- Decryption performance depends on CPU AES support
-- Large models may exhaust memory if fully decrypted
-
-### Operational Requirements
-
-**Deployment Prerequisites**:
-- Container runtime with security flag support
-- Network access to KoalaVault API servers
-- Sufficient memory for working set of decrypted tensors
-- Hardware AES acceleration recommended for performance
-
-**Monitoring and Maintenance**:
-- Regular framework baseline updates for security patches
-- API key rotation and access control management
-- Security log monitoring for anomaly detection
-- Incident response procedures for security violations
-
-## Future Development
-
-### Planned Enhancements
-
-**Hardware Security Integration**:
-- TPM-based key storage and attestation
-- Intel SGX enclave support for confidential computing
-- Hardware security module (HSM) integration
-- ARM TrustZone support for mobile deployments
-
-**Advanced Cryptography**:
-- Post-quantum cryptographic algorithms
-- Homomorphic encryption for privacy-preserving inference
-- Zero-knowledge proofs for access control
-- Threshold cryptography for distributed key management
-
-**Performance Optimizations**:
-- GPU-accelerated encryption/decryption
-- Streaming decryption for very large models
-- Intelligent prefetching based on model usage patterns
-- Compression integration with encryption
-
-This technical specification provides the foundation for secure AI model deployment while maintaining the performance and usability characteristics required for production ML workloads.

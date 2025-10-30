@@ -67,17 +67,18 @@ Currently, KoalaVault only supports models in **safetensors** format. Models in 
     ```bash
     koava push ./qwen3-0.6b
     ```
-    3. Your model is now created on KoalaVault and HuggingFace. 
+    3. Result: the model is now created on KoalaVault and Hugging Face.
 
-        **Full encrypted model**: hosted on HuggingFace, publicly accessible for download by anyone.
-        ```bash
-        https://huggingface.co/<your-huggingface-username>/qwen3-0.6b
-        ``` 
-        **Decryption keys and metadata**: securely hosted on KoalaVault to enforce access control and ensure buyer isolation.
-    
-        ```bash
-        https://www.koalavault.ai/<your-koalavault-username>/qwen3-0.6b
-        ```
+        - **Hugging Face repository (default: Private)**: `koava push` creates a private repository on Hugging Face to host the full encrypted model files.
+          ```bash
+          https://huggingface.co/<your-hf-username>/qwen3-0.6b
+          ```
+          To make it public: open **Settings** → **Repository visibility** → **Make public**.
+
+        - **Decryption keys & metadata (hosted by KoalaVault)**: used for authorization checks and buyer isolation to ensure controlled execution.
+          ```bash
+          https://www.koalavault.ai/<your-koalavault-username>/qwen3-0.6b
+          ```
   </Step>
 </Steps>
 
@@ -99,6 +100,10 @@ Currently, KoalaVault only supports models in **safetensors** format. Models in 
 
   <Step title="Publish & Share Your Model">
     Once your pricing is set, you're ready to publish! **Click the Publish button** on your model page to make it live.
+
+    <Note>
+    You must first make your Hugging Face repository public before you can publish your model on KoalaVault. 
+    </Note>
     
     🎉 **Congratulations!** Your model is now live on the KoalaVault marketplace! 🌟
     

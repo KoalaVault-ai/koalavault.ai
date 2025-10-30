@@ -109,22 +109,23 @@
       {
         "group": "vLLM Deployment",
         "pages": [
-          "tools/docker-run-guide"
+          "deploy/docker-run-guide"
         ]
       },
       {
         "group": "Security & Policies",
-        "hidden": true,
         "pages": [
           "security/architecture",
           "security/cryptotensors",
+          "koava/huggingface-compliance",
           "security/trust-remote-code"
         ]
       },
       {
         "group": "Cryptocurrency",
         "pages": [
-          "crypto/wallet-setup"
+          "crypto/wallet-setup",
+          "crypto/payment-guide"
         ]
       }
     ]

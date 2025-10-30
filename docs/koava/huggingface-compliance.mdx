@@ -1,0 +1,90 @@
+---
+title: "Hugging Face Compliance"
+description: "This document explains how encrypted model publishing works within Hugging Face's boundaries — ensuring transparency, user clarity, and respect for open-source norms."
+---
+
+## Understanding Hugging Face’s Requirements
+
+Hugging Face maintains a clear set of expectations for all hosted models, summarized as:
+
+1. **Clarity and Transparency** — Repositories must clearly describe what users are downloading and how it can be used.  
+2. **Proper Licensing** — A valid license must accompany each repository, defining rights and restrictions.  
+3. **Accurate Representation** — Non-open models must not be presented as open-source.  
+4. **Respect for Legal Boundaries** — Licensing and redistribution must comply with applicable copyright law.
+
+For official guidance, see Hugging Face policies: [Code of Conduct](https://huggingface.co/code-of-conduct), and [Terms of Service](https://huggingface.co/terms-of-service). If a link is temporarily unavailable, refer to the Hub docs index at [Hub Documentation](https://huggingface.co/docs/hub/index).
+
+**KoalaVault’s encryption and authorization system is designed with these principles in mind**.  
+Our goal is not to obscure, but to help model developers distribute protected artifacts **transparently and responsibly**.
+
+
+## How KoalaVault Stays Compliant
+
+### 1. Default Private Repositories
+
+**What happens**  
+When you push a model using `koava push`, KoalaVault creates the Hugging Face repository as **private by default**.
+
+**Why this matters**  
+Private creation ensures that your repository is reviewed for clarity, license accuracy, and compliance **before** it becomes visible to the public.  
+This default behavior follows Hugging Face’s own guidance, which recommends keeping repositories private until they are ready for release.
+
+**How to make it public**  
+You can make your repository public at any time via:  
+- **Settings → Repository visibility → Make public**  
+- or by using the `--public` flag when running `koava push`, see [koava push](/koava/push) for more details.
+
+
+
+### 2. Automatic README Compliance Block
+
+**What happens**  
+During encryption (`koava encrypt`), KoalaVault inserts a short compliance block in your `README.md`.
+
+**Purpose**  
+This block clarifies that:
+- the model is **encrypted and not open source**;  
+- KoalaVault handles **authorization and subscription validation**;  
+- users need valid authorization before decryption or execution.  
+
+The block includes an invisible marker, ensuring we never insert duplicates and preserving your original README content.
+
+
+
+### 3. Dual License Structure
+
+**What happens**  
+KoalaVault never replaces your original license. Instead, it adds a parallel license file named `LICENSE.KOALAVAULT`.
+
+**Why this is important**  
+- The **original license** (e.g., MIT, Apache, custom commercial) continues to define ownership and legal rights.  
+- The **KoalaVault license** defines redistribution and execution rules for **encrypted artifacts only**.
+
+**In effect:**  
+- ✅ Redistribution of unmodified encrypted files is allowed.  
+- ✅ Execution requires verified authorization via KoalaVault.  
+- ❌ Decryption, modification, or derivative work without authorization is prohibited.  
+- ❌ Circumvention or reverse-engineering of encryption or policy controls is prohibited.
+
+This structure ensures legal clarity while fully respecting the original author’s rights.
+
+
+## Compliance Checklist
+
+Before publishing a model publicly, ensure:
+
+- [x] Repository was created as **private** by default.  
+- [x] `README.md` contains the short compliance block.  
+- [x] `LICENSE.KOALAVAULT` is present alongside your original license.  
+- [x] The original license file is preserved and unmodified.  
+
+
+## Manual Publishing Flow
+
+After running `koava push`:
+
+1. Visit your model page at `https://huggingface.co/<username>/<model-name>`.  
+2. Review `README.md` and both license files.  
+3. Confirm clarity and compliance.  
+4. In Settings, change **Repository visibility** to **Public** when ready.  
+5. Optionally, share your Hugging Face link in your KoalaVault listing.
